@@ -31,9 +31,8 @@ try {
                 COALESCE(s.quantity, 0)                                                 AS actual_qty,
                 COALESCE((SELECT SUM(quantity) FROM stock_movements
                           WHERE product_id = p.id AND movement_type = "addition"
-                            AND reference_type != "initial" 
-                            AND id != (SELECT MIN(id) FROM stock_movements sm2 
-                                       WHERE sm2.product_id = p.id 
+                            AND id != (SELECT MIN(id) FROM stock_movements sm2
+                                       WHERE sm2.product_id = p.id
                                        AND sm2.movement_type = "addition")), 0)         AS total_restocked,
                 COALESCE((SELECT SUM(quantity) FROM stock_movements
                           WHERE product_id = p.id AND movement_type = "deduction"
@@ -41,6 +40,8 @@ try {
                 COALESCE((SELECT SUM(quantity) FROM stock_movements
                           WHERE product_id = p.id AND movement_type = "deduction"
                             AND (reference_type = "manual" OR reference_type IS NULL)), 0) AS manual_deductions,
+                COALESCE((SELECT SUM(quantity) FROM stock_movements
+                          WHERE product_id = p.id AND movement_type = "expiry_removal"), 0) AS expiry_removed,
                 COALESCE((SELECT SUM(ABS(quantity)) FROM stock_movements
                           WHERE product_id = p.id AND movement_type = "adjustment"), 0) AS adjustments
             FROM products p
@@ -53,12 +54,14 @@ try {
         $result = [];
 
         foreach ($rows as $r) {
+            // Expected = initial + restocks - sold - manual deductions - expiry removals
             $expected = (int)$r['initial_qty']
                       + (int)$r['total_restocked']
                       - (int)$r['sold_qty']
-                      - (int)$r['manual_deductions'];
+                      - (int)$r['manual_deductions']
+                      - (int)$r['expiry_removed'];
             $actual   = (int)$r['actual_qty'];
-            $variance = $expected - $actual; // positive = missing
+            $variance = $expected - $actual; // positive = missing, negative = surplus
 
             $result[] = [
                 'id'                => $r['id'],
@@ -68,6 +71,7 @@ try {
                 'total_restocked'   => (int)$r['total_restocked'],
                 'sold_qty'          => (int)$r['sold_qty'],
                 'manual_deductions' => (int)$r['manual_deductions'],
+                'expiry_removed'    => (int)$r['expiry_removed'],
                 'adjustments'       => (int)$r['adjustments'],
                 'expected_qty'      => $expected,
                 'actual_qty'        => $actual,
@@ -111,8 +115,8 @@ try {
             WHERE sm.created_at >= ?
               AND (
                 (sm.movement_type = "deduction" AND (sm.reference_type = "manual" OR sm.reference_type IS NULL))
-                OR
-                (sm.movement_type = "adjustment" AND ABS(sm.quantity) >= 5)
+                OR (sm.movement_type = "expiry_removal")
+                OR (sm.movement_type = "adjustment" AND ABS(sm.quantity) >= 5)
               )
             ORDER BY sm.created_at DESC
         ');
@@ -150,15 +154,17 @@ try {
     if ($action === 'daily_loss') {
         $stmt = $pdo->prepare('
             SELECT
-                DATE(sm.created_at)         AS date,
+                DATE(sm.created_at)           AS date,
                 COUNT(DISTINCT sm.product_id) AS products_affected,
-                SUM(sm.quantity)            AS total_units_lost,
+                SUM(sm.quantity)              AS total_units_lost,
                 GROUP_CONCAT(DISTINCT p.name) AS products
             FROM stock_movements sm
             JOIN products p ON sm.product_id = p.id
             WHERE sm.created_at >= ?
-              AND sm.movement_type = "deduction"
-              AND (sm.reference_type = "manual" OR sm.reference_type IS NULL)
+              AND (
+                (sm.movement_type = "deduction" AND (sm.reference_type = "manual" OR sm.reference_type IS NULL))
+                OR sm.movement_type = "expiry_removal"
+              )
             GROUP BY DATE(sm.created_at)
             ORDER BY date DESC
         ');

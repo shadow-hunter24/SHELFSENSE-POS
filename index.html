@@ -2758,6 +2758,7 @@
                           <th>Restocked</th>
                           <th>Sold</th>
                           <th>Manual Deductions</th>
+                          <th>Expiry Removed</th>
                           <th>Expected</th>
                           <th>Actual</th>
                           <th>Variance</th>
@@ -8085,7 +8086,7 @@
 
       const tbody = document.getElementById('tbl-variance');
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-4">
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-muted py-4">
           <i class="bi bi-check-circle text-success fs-3 d-block mb-2"></i>No issues found</td></tr>`;
         return;
       }
@@ -8107,6 +8108,7 @@
           <td class="text-success">+${r.total_restocked}</td>
           <td class="text-primary">-${r.sold_qty}</td>
           <td class="${r.manual_deductions > 0 ? 'text-danger fw-bold' : ''}">${r.manual_deductions > 0 ? '-' + r.manual_deductions : '0'}</td>
+          <td class="${r.expiry_removed > 0 ? 'text-warning fw-bold' : ''}">${r.expiry_removed > 0 ? '-' + r.expiry_removed : '0'}</td>
           <td><strong>${r.expected_qty}</strong></td>
           <td>${r.actual_qty}</td>
           <td class="${varianceClass}">${r.variance > 0 ? '-' + r.variance : r.variance < 0 ? '+' + Math.abs(r.variance) : '0'}</td>
