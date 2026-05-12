@@ -405,20 +405,14 @@ try {
                 $stmt->execute([$startDate]);
                 $profitTrend = $stmt->fetchAll();
 
-                // Expiry loss estimation (expired batches that were deleted = lost stock)
-                // We track this via stock movements with reference_type = 'expiry_deletion' or batch deletes
+                // Expiry loss — sum cost of all expiry_removal stock movements in the period
                 $stmt = $pdo->prepare('
-                    SELECT
-                        COALESCE(SUM(sb_deleted.qty * pu.cost_price), 0) as estimated_expiry_loss
-                    FROM (
-                        SELECT sm.product_id, SUM(sm.quantity) as qty
-                        FROM stock_movements sm
-                        WHERE sm.movement_type = "deduction"
-                          AND sm.notes LIKE "%expired%"
-                          AND sm.created_at >= ?
-                        GROUP BY sm.product_id
-                    ) sb_deleted
-                    LEFT JOIN product_units pu ON pu.product_id = sb_deleted.product_id AND pu.is_base_unit = 1
+                    SELECT COALESCE(SUM(sm.quantity * COALESCE(pu.cost_price, 0)), 0) as estimated_expiry_loss
+                    FROM stock_movements sm
+                    LEFT JOIN product_units pu
+                        ON pu.product_id = sm.product_id AND pu.is_base_unit = 1
+                    WHERE sm.movement_type = "expiry_removal"
+                      AND sm.created_at >= ?
                 ');
                 $stmt->execute([$startDate . ' 00:00:00']);
                 $expiryLoss = (float)$stmt->fetchColumn();
