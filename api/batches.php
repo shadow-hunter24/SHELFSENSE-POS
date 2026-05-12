@@ -314,7 +314,7 @@ try {
             try {
                 // Get all expired batches with their quantities
                 $stmt = $pdo->query('
-                    SELECT sb.id, sb.product_id, sb.quantity 
+                    SELECT sb.id, sb.product_id, sb.quantity, sb.batch_number, sb.expiry_date
                     FROM stock_batches sb
                     JOIN products p ON sb.product_id = p.id
                     WHERE p.has_expiry = 1 AND julianday(sb.expiry_date) < julianday("now")
@@ -327,13 +327,31 @@ try {
                     exit;
                 }
                 
-                // Reduce stock for each expired batch
-                $updateStock = $pdo->prepare('UPDATE stock SET quantity = MAX(0, quantity - ?) WHERE product_id = ?');
-                $deleteBatch = $pdo->prepare('DELETE FROM stock_batches WHERE id = ?');
+                // Reduce stock and record movement for each expired batch
+                $getStock     = $pdo->prepare('SELECT quantity FROM stock WHERE product_id = ?');
+                $updateStock  = $pdo->prepare('UPDATE stock SET quantity = MAX(0, quantity - ?) WHERE product_id = ?');
+                $deleteBatch  = $pdo->prepare('DELETE FROM stock_batches WHERE id = ?');
+                $recMovement  = $pdo->prepare('INSERT INTO stock_movements (product_id, movement_type, quantity, quantity_before, quantity_after, reference_type, reference_id, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
                 
                 foreach ($expiredBatches as $batch) {
+                    $getStock->execute([$batch['product_id']]);
+                    $qtyBefore = (int)($getStock->fetchColumn() ?? 0);
+                    $removed   = min($batch['quantity'], $qtyBefore);
+                    $qtyAfter  = $qtyBefore - $removed;
+
                     $updateStock->execute([$batch['quantity'], $batch['product_id']]);
                     $deleteBatch->execute([$batch['id']]);
+                    $recMovement->execute([
+                        $batch['product_id'],
+                        'expiry_removal',
+                        $removed,
+                        $qtyBefore,
+                        $qtyAfter,
+                        'batch',
+                        $batch['id'],
+                        "Expired batch #{$batch['batch_number']} removed (expired: {$batch['expiry_date']})",
+                        $_SESSION['user_id']
+                    ]);
                 }
                 
                 $pdo->commit();
@@ -356,7 +374,7 @@ try {
         $pdo->beginTransaction();
         try {
             // Get batch info before deletion
-            $stmt = $pdo->prepare('SELECT product_id, quantity FROM stock_batches WHERE id = ?');
+            $stmt = $pdo->prepare('SELECT product_id, quantity, batch_number, expiry_date FROM stock_batches WHERE id = ?');
             $stmt->execute([$id]);
             $batch = $stmt->fetch();
             
@@ -368,15 +386,34 @@ try {
             }
             
             $productId = (int)$batch['product_id'];
-            $quantity = (int)$batch['quantity'];
+            $quantity  = (int)$batch['quantity'];
+
+            // Get current stock before deduction
+            $getStock = $pdo->prepare('SELECT quantity FROM stock WHERE product_id = ?');
+            $getStock->execute([$productId]);
+            $qtyBefore = (int)($getStock->fetchColumn() ?? 0);
+            $qtyAfter  = max(0, $qtyBefore - $quantity);
             
             // Delete batch
             $stmt = $pdo->prepare('DELETE FROM stock_batches WHERE id = ?');
             $stmt->execute([$id]);
             
             // Update total stock quantity
-            $updateStock = $pdo->prepare('UPDATE stock SET quantity = quantity - ? WHERE product_id = ?');
-            $updateStock->execute([$quantity, $productId]);
+            $pdo->prepare('UPDATE stock SET quantity = quantity - ? WHERE product_id = ?')->execute([$quantity, $productId]);
+
+            // Record expiry removal in stock movements
+            $pdo->prepare('INSERT INTO stock_movements (product_id, movement_type, quantity, quantity_before, quantity_after, reference_type, reference_id, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                ->execute([
+                    $productId,
+                    'expiry_removal',
+                    $quantity,
+                    $qtyBefore,
+                    $qtyAfter,
+                    'batch',
+                    $id,
+                    "Expired batch #{$batch['batch_number']} removed (expired: {$batch['expiry_date']})",
+                    $_SESSION['user_id']
+                ]);
             
             $pdo->commit();
             echo json_encode(['deleted' => 1]);

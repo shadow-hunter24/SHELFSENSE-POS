@@ -33,7 +33,7 @@ try {
                 SELECT 
                     COALESCE(SUM(s.quantity), 0) as total_stock,
                     COUNT(CASE WHEN s.quantity = 0 THEN 1 END) as out_of_stock,
-                    COUNT(CASE WHEN s.quantity > 0 AND s.quantity < 10 THEN 1 END) as low_stock
+                    COUNT(CASE WHEN s.quantity > 0 AND s.quantity <= p.reorder_point THEN 1 END) as low_stock
                 FROM stock s
                 JOIN products p ON s.product_id = p.id
                 WHERE p.id != 0 AND p.sku != "DELETED"
@@ -42,7 +42,7 @@ try {
             exit;
         }
         
-        // Build query with optional search
+        // Build query with optional search and filters
         $whereClause = 'WHERE p.id != 0 AND p.sku != "DELETED"';
         $params = [];
         
@@ -50,8 +50,27 @@ try {
             $whereClause .= ' AND (p.name LIKE :search OR p.sku LIKE :search)';
             $params[':search'] = '%' . $search . '%';
         }
+
+        // Server-side status filter — use subquery so it works in both count and main query
+        $statusFilter = $_GET['status'] ?? 'all';
+        if ($statusFilter === 'out-of-stock') {
+            $whereClause .= ' AND COALESCE((SELECT quantity FROM stock WHERE product_id = p.id), 0) = 0';
+        } elseif ($statusFilter === 'low-stock') {
+            $whereClause .= ' AND COALESCE((SELECT quantity FROM stock WHERE product_id = p.id), 0) > 0'
+                          . ' AND COALESCE((SELECT quantity FROM stock WHERE product_id = p.id), 0) <= p.reorder_point';
+        } elseif ($statusFilter === 'in-stock') {
+            $whereClause .= ' AND COALESCE((SELECT quantity FROM stock WHERE product_id = p.id), 0) > p.reorder_point';
+        }
+
+        // Server-side expiry filter
+        $expiryFilter = $_GET['has_expiry'] ?? 'all';
+        if ($expiryFilter === 'with-expiry') {
+            $whereClause .= ' AND p.has_expiry = 1';
+        } elseif ($expiryFilter === 'without-expiry') {
+            $whereClause .= ' AND p.has_expiry = 0';
+        }
         
-        // Get total count for pagination
+        // Count query — only needs products table since filters use subqueries
         $countQuery = "SELECT COUNT(*) FROM products p $whereClause";
         $countStmt = $pdo->prepare($countQuery);
         foreach ($params as $key => $value) {
@@ -68,6 +87,7 @@ try {
                 p.name, 
                 p.unit_price,
                 p.has_expiry,
+                p.reorder_point,
                 COALESCE(s.quantity, 0) as quantity,
                 COALESCE(s.initial_quantity, 0) as initial_quantity,
                 COALESCE(

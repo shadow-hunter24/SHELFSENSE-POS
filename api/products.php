@@ -106,6 +106,7 @@ try {
         $unit_price = (float)($data['unit_price'] ?? 0);
         $cost_price = (float)($data['cost_price'] ?? 0);
         $has_expiry = (int)($data['has_expiry'] ?? 0);
+        $reorder_point = max(0, (int)($data['reorder_point'] ?? 10));
         if ($sku === '' || $name === '') {
             http_response_code(400);
             echo json_encode(['error' => 'sku and name are required']);
@@ -129,8 +130,8 @@ try {
 
         $pdo->beginTransaction();
         try {
-            $ins = $pdo->prepare('INSERT INTO products (sku, name, unit_price, has_expiry) VALUES (?, ?, ?, ?)');
-            $ins->execute([$sku, $name, $unit_price, $has_expiry]);
+            $ins = $pdo->prepare('INSERT INTO products (sku, name, unit_price, has_expiry, reorder_point) VALUES (?, ?, ?, ?, ?)');
+            $ins->execute([$sku, $name, $unit_price, $has_expiry, $reorder_point]);
             $pid = (int)$pdo->lastInsertId();
             
             // Ensure stock row exists
@@ -170,6 +171,7 @@ try {
         $name = trim((string)($data['name'] ?? ''));
         $unit_price = (float)($data['unit_price'] ?? 0);
         $has_expiry = isset($data['has_expiry']) ? (int)$data['has_expiry'] : null;
+        $reorder_point = isset($data['reorder_point']) ? max(0, (int)$data['reorder_point']) : null;
         
         if ($name === '') {
             http_response_code(400);
@@ -187,9 +189,15 @@ try {
         }
         
         try {
-            if ($has_expiry !== null) {
+            if ($has_expiry !== null && $reorder_point !== null) {
+                $stmt = $pdo->prepare('UPDATE products SET name = ?, unit_price = ?, has_expiry = ?, reorder_point = ? WHERE id = ?');
+                $stmt->execute([$name, $unit_price, $has_expiry, $reorder_point, $id]);
+            } elseif ($has_expiry !== null) {
                 $stmt = $pdo->prepare('UPDATE products SET name = ?, unit_price = ?, has_expiry = ? WHERE id = ?');
                 $stmt->execute([$name, $unit_price, $has_expiry, $id]);
+            } elseif ($reorder_point !== null) {
+                $stmt = $pdo->prepare('UPDATE products SET name = ?, unit_price = ?, reorder_point = ? WHERE id = ?');
+                $stmt->execute([$name, $unit_price, $reorder_point, $id]);
             } else {
                 $stmt = $pdo->prepare('UPDATE products SET name = ?, unit_price = ? WHERE id = ?');
                 $stmt->execute([$name, $unit_price, $id]);

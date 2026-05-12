@@ -205,6 +205,19 @@ function ensure_sqlite_initialized(PDO $pdo, string $dbFile): void {
     } catch (Exception $e) {
         // Column already exists
     }
+
+    // Per-product reorder point (replaces the hardcoded < 10 threshold everywhere)
+    try {
+        $pdo->exec('ALTER TABLE products ADD COLUMN reorder_point INTEGER NOT NULL DEFAULT 10');
+    } catch (Exception $e) {
+        // Column already exists
+    }
+    // Backfill any existing rows that have NULL reorder_point
+    try {
+        $pdo->exec('UPDATE products SET reorder_point = 10 WHERE reorder_point IS NULL');
+    } catch (Exception $e) {
+        // Ignore
+    }
     
     // Add profit tracking columns to product_units (cost varies per unit)
     try {
@@ -251,6 +264,17 @@ function ensure_sqlite_initialized(PDO $pdo, string $dbFile): void {
     }
     try {
         $pdo->exec('ALTER TABLE receipts ADD COLUMN payment_reference TEXT DEFAULT NULL');
+    } catch (Exception $e) {
+        // Column already exists
+    }
+    // Created-by columns for user attribution
+    try {
+        $pdo->exec('ALTER TABLE receipts ADD COLUMN created_by INTEGER DEFAULT NULL');
+    } catch (Exception $e) {
+        // Column already exists
+    }
+    try {
+        $pdo->exec('ALTER TABLE receipts ADD COLUMN created_by_username TEXT DEFAULT NULL');
     } catch (Exception $e) {
         // Column already exists
     }

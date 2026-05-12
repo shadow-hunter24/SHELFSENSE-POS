@@ -283,7 +283,7 @@ try {
     $stmt = $pdo->prepare('SELECT DATE(created_at) as date, COUNT(*) as receipts, COALESCE(SUM(total),0) as revenue, COALESCE(SUM(total_profit),0) as profit FROM receipts WHERE DATE(created_at) >= ? GROUP BY DATE(created_at) ORDER BY date ASC');
     $stmt->execute([date('Y-m-d', strtotime('-6 days'))]); $weekly_trend = $stmt->fetchAll();
 
-    $stmt = $pdo->query('SELECT p.name, s.quantity FROM stock s JOIN products p ON s.product_id = p.id WHERE p.id != 0 AND p.sku != "DELETED" AND s.quantity > 0 AND s.quantity < 10 ORDER BY s.quantity ASC LIMIT 10');
+    $stmt = $pdo->query('SELECT p.name, s.quantity, p.reorder_point FROM stock s JOIN products p ON s.product_id = p.id WHERE p.id != 0 AND p.sku != "DELETED" AND s.quantity > 0 AND s.quantity <= p.reorder_point ORDER BY s.quantity ASC LIMIT 10');
     $low_stock = $stmt->fetchAll();
 
     $stmt = $pdo->query('SELECT p.name FROM stock s JOIN products p ON s.product_id = p.id WHERE p.id != 0 AND p.sku != "DELETED" AND s.quantity = 0 ORDER BY p.name ASC LIMIT 10');

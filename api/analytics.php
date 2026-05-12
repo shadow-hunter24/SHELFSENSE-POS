@@ -310,6 +310,7 @@ try {
                         p.id,
                         p.sku,
                         p.name,
+                        p.reorder_point,
                         COALESCE(s.quantity, 0) AS current_stock,
                         COALESCE(
                             (SELECT SUM(sm.quantity) FROM stock_movements sm
@@ -333,9 +334,10 @@ try {
 
                 $predictions = [];
                 foreach ($rows as $r) {
-                    $stock     = (int)$r['current_stock'];
-                    $sold30    = (float)$r['sold_last_30'];
-                    $dailyRate = $sold30 / $period;
+                    $stock        = (int)$r['current_stock'];
+                    $reorderPoint = (int)($r['reorder_point'] ?? 10);
+                    $sold30       = (float)$r['sold_last_30'];
+                    $dailyRate    = $sold30 / $period;
 
                     if ($dailyRate > 0) {
                         $daysLeft = $stock / $dailyRate;
@@ -349,19 +351,20 @@ try {
                     elseif ($daysLeft !== null && $daysLeft <= 7)  $status = 'urgent';
                     elseif ($daysLeft !== null && $daysLeft <= 14) $status = 'low';
                     elseif ($daysLeft !== null && $daysLeft <= 30) $status = 'watch';
-                    elseif ($stock > 0 && $stock <= 10)            $status = 'watch'; // low stock regardless of sales
+                    elseif ($stock > 0 && $stock <= $reorderPoint) $status = 'watch'; // at or below reorder point
 
                     if ($status !== 'ok') {
                         $predictions[] = [
-                            'id'           => $r['id'],
-                            'sku'          => $r['sku'],
-                            'name'         => $r['name'],
-                            'current_stock'=> $stock,
-                            'sold_last_30' => round($sold30, 1),
-                            'daily_rate'   => round($dailyRate, 2),
-                            'days_left'    => $daysLeft !== null ? round($daysLeft, 1) : null,
-                            'reorder_qty'  => max(10, (int)ceil($dailyRate * 30)), // 30-day reorder
-                            'status'       => $status,
+                            'id'            => $r['id'],
+                            'sku'           => $r['sku'],
+                            'name'          => $r['name'],
+                            'reorder_point' => $reorderPoint,
+                            'current_stock' => $stock,
+                            'sold_last_30'  => round($sold30, 1),
+                            'daily_rate'    => round($dailyRate, 2),
+                            'days_left'     => $daysLeft !== null ? round($daysLeft, 1) : null,
+                            'reorder_qty'   => max($reorderPoint, (int)ceil($dailyRate * 30)), // 30-day reorder
+                            'status'        => $status,
                         ];
                     }
                 }
