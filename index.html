@@ -4463,62 +4463,79 @@
     async function loadProductsPage(page) {
       try {
         currentProductPage = page;
+
+        // Read current filter state from DOM
+        const searchTerm  = document.getElementById('product-search')?.value.trim() || '';
+        const expiryFilter = document.getElementById('product-expiry-filter')?.value || 'all';
+        const unitsFilter  = document.getElementById('product-units-filter')?.value || 'all';
         
         // Show loading feedback
         const tbody = document.getElementById('tbl-products');
         tbody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
         
-        // Build query params
-        const params = new URLSearchParams({
-          page: page,
-          pageSize: 100
-        });
-        
-        if (productSearchTerm) {
-          params.append('q', productSearchTerm);
-        }
+        // Pass all filters to the server
+        const params = new URLSearchParams({ page: page, pageSize: 100 });
+        if (searchTerm)              params.append('q', searchTerm);
+        if (expiryFilter !== 'all')  params.append('has_expiry', expiryFilter);
+        if (unitsFilter  !== 'all')  params.append('units', unitsFilter);
         
         const data = await apiCall(`api/products.php?${params.toString()}`);
         
-        tbody.innerHTML = data.items.map(item => `
-          <tr>
-            <td>${item.id}</td>
-            <td>${item.sku}</td>
-            <td>${item.name}</td>
-            <td>${formatCurrency(item.unit_price)}</td>
-            <td>
-              <span class="badge bg-info">${item.units ? item.units.length : 0} unit(s)</span>
-            </td>
-            <td>
-              ${item.has_expiry ? 
-                '<span class="badge bg-success">Yes</span>' : 
-                '<span class="badge bg-secondary">No</span>'
-              }
-            </td>
-            <td>${formatDate(item.created_at)}</td>
-            <td class="no-print">
-              <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct(${item.id})" title="Edit Product">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button class="btn btn-sm btn-info me-1" onclick="manageUnits(${item.id}, '${item.name.replace(/'/g, "\\'")}')" title="Manage Units">
-                <i class="bi bi-list-ul"></i> Units
-              </button>
-              ${item.has_expiry ? `
-                <button class="btn btn-sm btn-success me-1" onclick="showBatchModal(${item.id})" title="Add Batch">
-                  <i class="bi bi-plus-circle"></i> Batch
+        if (data.items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-inbox"></i> No products match the selected filters</td></tr>';
+        } else {
+          tbody.innerHTML = data.items.map(item => `
+            <tr>
+              <td>${item.id}</td>
+              <td>${item.sku}</td>
+              <td>${item.name}</td>
+              <td>${formatCurrency(item.unit_price)}</td>
+              <td>
+                <span class="badge bg-info">${item.units ? item.units.length : 0} unit(s)</span>
+              </td>
+              <td>
+                ${item.has_expiry ?
+                  '<span class="badge bg-success">Yes</span>' :
+                  '<span class="badge bg-secondary">No</span>'
+                }
+              </td>
+              <td>${formatDate(item.created_at)}</td>
+              <td class="no-print">
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct(${item.id})" title="Edit Product">
+                  <i class="bi bi-pencil"></i>
                 </button>
-              ` : ''}
-              <button class="btn btn-sm btn-danger" onclick="deleteProduct(${item.id})" title="Delete Product">
-                <i class="bi bi-trash"></i>
-              </button>
-            </td>
-          </tr>
-        `).join('');
+                <button class="btn btn-sm btn-info me-1" onclick="manageUnits(${item.id}, '${item.name.replace(/'/g, "\\'")}')" title="Manage Units">
+                  <i class="bi bi-list-ul"></i> Units
+                </button>
+                ${item.has_expiry ? `
+                  <button class="btn btn-sm btn-success me-1" onclick="showBatchModal(${item.id})" title="Add Batch">
+                    <i class="bi bi-plus-circle"></i> Batch
+                  </button>
+                ` : ''}
+                <button class="btn btn-sm btn-danger" onclick="deleteProduct(${item.id})" title="Delete Product">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        }
         
-        // Update pagination if available
+        // Update pagination
         if (data.pagination) {
           updateProductPagination(data.pagination);
         }
+
+        // Update filter info bar
+        const searchInfo = document.getElementById('product-search-info');
+        const isFiltered = searchTerm || expiryFilter !== 'all' || unitsFilter !== 'all';
+        if (isFiltered) {
+          const total = data.pagination?.total_items ?? data.items.length;
+          searchInfo.style.display = 'block';
+          searchInfo.innerHTML = `<i class="bi bi-info-circle"></i> Showing ${data.items.length} of ${total} products (filtered)`;
+        } else {
+          searchInfo.style.display = 'none';
+        }
+
       } catch (error) {
         console.error('Failed to load products:', error);
         const tbody = document.getElementById('tbl-products');
@@ -5110,68 +5127,19 @@
 
     // Product Search/Filter Functions
     function filterProducts() {
-      const searchTerm = document.getElementById('product-search').value.toLowerCase();
-      const expiryFilter = document.getElementById('product-expiry-filter').value;
-      const unitsFilter = document.getElementById('product-units-filter').value;
-      const tbody = document.getElementById('tbl-products');
-      const rows = tbody.getElementsByTagName('tr');
-      let visibleCount = 0;
-      let totalCount = rows.length;
-      
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        const sku = row.cells[1]?.textContent.toLowerCase() || '';
-        const name = row.cells[2]?.textContent.toLowerCase() || '';
-        const hasExpiry = row.cells[5]?.textContent.toLowerCase() || '';
-        const units = row.cells[4]?.textContent || '';
-        
-        // Search filter
-        const matchesSearch = sku.includes(searchTerm) || name.includes(searchTerm);
-        
-        // Expiry filter
-        let matchesExpiry = true;
-        if (expiryFilter === 'with-expiry') {
-          matchesExpiry = hasExpiry.includes('yes');
-        } else if (expiryFilter === 'without-expiry') {
-          matchesExpiry = hasExpiry.includes('no');
-        }
-        
-        // Units filter
-        let matchesUnits = true;
-        if (unitsFilter === 'with-units') {
-          matchesUnits = units !== '0' && units !== '';
-        } else if (unitsFilter === 'no-units') {
-          matchesUnits = units === '0' || units === '';
-        }
-        
-        if (matchesSearch && matchesExpiry && matchesUnits) {
-          row.style.display = '';
-          visibleCount++;
-        } else {
-          row.style.display = 'none';
-        }
-      }
-      
-      // Show search info
-      const searchInfo = document.getElementById('product-search-info');
-      if (searchTerm || expiryFilter !== 'all' || unitsFilter !== 'all') {
-        searchInfo.style.display = 'block';
-        searchInfo.innerHTML = `<i class="bi bi-info-circle"></i> Showing ${visibleCount} of ${totalCount} products`;
-      } else {
-        searchInfo.style.display = 'none';
-      }
+      loadProductsPage(1);
     }
     
     function clearProductSearch() {
       document.getElementById('product-search').value = '';
-      filterProducts();
+      loadProductsPage(1);
     }
     
     function clearAllProductFilters() {
       document.getElementById('product-search').value = '';
       document.getElementById('product-expiry-filter').value = 'all';
       document.getElementById('product-units-filter').value = 'all';
-      filterProducts();
+      loadProductsPage(1);
     }
 
     // Stock Search/Filter Functions

@@ -54,39 +54,54 @@ try {
             exit;
         }
 
+        // Build WHERE clause with all active filters
+        $where = 'id != 0 AND sku != "DELETED"';
+        $bindParams = [];
+
         if ($q !== '') {
-            $stmt = $pdo->prepare('SELECT * FROM products WHERE (name LIKE :q OR sku LIKE :q) AND id != 0 AND sku != "DELETED" ORDER BY id DESC LIMIT :limit OFFSET :offset');
-            $stmt->bindValue(':q', '%' . $q . '%');
-            $stmt->bindValue(':limit', $pageSize, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-            $stmt->execute();
-        } else {
-            $stmt = $pdo->prepare('SELECT * FROM products WHERE id != 0 AND sku != "DELETED" ORDER BY id DESC LIMIT :limit OFFSET :offset');
-            $stmt->bindValue(':limit', $pageSize, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-            $stmt->execute();
+            $where .= ' AND (name LIKE :q OR sku LIKE :q)';
+            $bindParams[':q'] = '%' . $q . '%';
         }
-        
-        $products = $stmt->fetchAll();
-        
-        // Get total count for pagination
-        if ($q !== '') {
-            $countStmt = $pdo->prepare('SELECT COUNT(*) FROM products WHERE (name LIKE :q OR sku LIKE :q) AND id != 0 AND sku != "DELETED"');
-            $countStmt->bindValue(':q', '%' . $q . '%');
-        } else {
-            $countStmt = $pdo->prepare('SELECT COUNT(*) FROM products WHERE id != 0 AND sku != "DELETED"');
+
+        // Expiry filter
+        $hasExpiryFilter = $_GET['has_expiry'] ?? 'all';
+        if ($hasExpiryFilter === 'with-expiry') {
+            $where .= ' AND has_expiry = 1';
+        } elseif ($hasExpiryFilter === 'without-expiry') {
+            $where .= ' AND has_expiry = 0';
         }
+
+        // Units filter — products with >1 unit (base unit + at least one extra)
+        $unitsFilter = $_GET['units'] ?? 'all';
+        if ($unitsFilter === 'with-units') {
+            $where .= ' AND (SELECT COUNT(*) FROM product_units WHERE product_id = products.id) > 1';
+        } elseif ($unitsFilter === 'no-units') {
+            $where .= ' AND (SELECT COUNT(*) FROM product_units WHERE product_id = products.id) <= 1';
+        }
+
+        // Count for pagination
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM products WHERE $where");
+        foreach ($bindParams as $k => $v) $countStmt->bindValue($k, $v);
         $countStmt->execute();
         $totalItems = (int)$countStmt->fetchColumn();
         $totalPages = (int)ceil($totalItems / $pageSize);
-        
-        // Fetch units for each product
+
+        // Fetch page
+        $stmt = $pdo->prepare("SELECT * FROM products WHERE $where ORDER BY id DESC LIMIT :limit OFFSET :offset");
+        foreach ($bindParams as $k => $v) $stmt->bindValue($k, $v);
+        $stmt->bindValue(':limit', $pageSize, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $products = $stmt->fetchAll();
+
+        // Attach units to each product
         $unitsStmt = $pdo->prepare('SELECT * FROM product_units WHERE product_id = ? ORDER BY is_base_unit DESC, unit_name ASC');
         foreach ($products as &$product) {
             $unitsStmt->execute([$product['id']]);
             $product['units'] = $unitsStmt->fetchAll();
         }
-        
+        unset($product);
+
         echo json_encode([
             'items' => $products,
             'pagination' => [
