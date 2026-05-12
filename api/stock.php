@@ -135,15 +135,23 @@ try {
         $notes = trim((string)($data['notes'] ?? ''));
 
         // MANDATORY RECEIPT ENFORCEMENT
-        // Regular users can only ADD stock (restocking). Only admins can do manual deductions/adjustments.
+        // Regular users can only ADD stock. Only admins can do manual deductions/adjustments.
         $userRole = $_SESSION['role'] ?? 'user';
         if ($userRole !== 'admin') {
-            // Detect if this is a deduction (setting quantity lower than current)
-            if ($quantity !== null) {
+            // Block non-admins from any deduction
+            if (($quantityToAdd !== null && $quantityToAdd < 0) || $quantity !== null) {
                 $checkStmt = $pdo->prepare('SELECT quantity FROM stock WHERE product_id = ?');
                 $checkStmt->execute([$id]);
                 $currentQty = (int)($checkStmt->fetchColumn() ?? 0);
-                if ($quantity < $currentQty) {
+                if ($quantity !== null && $quantity < $currentQty) {
+                    http_response_code(403);
+                    echo json_encode([
+                        'error' => 'Stock deductions require a receipt. Please use Create Receipt to record sales.',
+                        'enforcement' => true
+                    ]);
+                    exit;
+                }
+                if ($quantityToAdd !== null && $quantityToAdd < 0) {
                     http_response_code(403);
                     echo json_encode([
                         'error' => 'Stock deductions require a receipt. Please use Create Receipt to record sales.',
@@ -168,17 +176,19 @@ try {
             
             // Determine the new quantity
             if ($quantityToAdd !== null) {
-                // Adding stock (not replacing)
-                $newQuantity = $currentQty + $quantityToAdd;
-                $movement = $quantityToAdd;
-                $movementType = 'addition';
-                
-                // IMPORTANT: Set initial quantity ONLY if it's the very first stock addition (both are 0)
-                if ($initialQty === 0 && $currentQty === 0) {
-                    // First time adding stock - set initial = quantity being added
-                    $newInitialQty = $quantityToAdd;
+                $newQuantity = max(0, $currentQty + $quantityToAdd);
+                $movement    = $quantityToAdd;
+
+                if ($quantityToAdd > 0) {
+                    $movementType = 'addition';
+                    // Set initial quantity only on very first stock addition
+                    if ($initialQty === 0 && $currentQty === 0) {
+                        $newInitialQty = $quantityToAdd;
+                    }
+                } else {
+                    // Negative quantity_to_add = manual deduction (admin only)
+                    $movementType = 'deduction';
                 }
-                // Otherwise, initial quantity stays the same (restocking scenario)
                 
             } else if ($quantity !== null) {
                 // Setting absolute quantity (manual adjustment)
