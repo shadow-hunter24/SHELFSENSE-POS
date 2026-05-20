@@ -324,13 +324,13 @@ function ensure_sqlite_initialized(PDO $pdo, string $dbFile): void {
     
     // Insert default company settings if they don't exist
     $defaultSettings = [
-        'company_name' => 'Your Company Name',
-        'company_subtitle' => 'Business Description',
+        'company_name' => 'C F Trading ENT',
+        'company_subtitle' => 'POS & Inventory',
         'company_location' => 'Location: Your Business Address',
         'company_phone' => 'TEL: Your Phone Number',
         'company_email' => '',
         'company_website' => '',
-        'company_logo' => 'assets/logo.png'
+        'company_logo' => 'assets/cf-trading-ent-logo.jpeg'
     ];
     
     foreach ($defaultSettings as $key => $value) {
@@ -339,6 +339,38 @@ function ensure_sqlite_initialized(PDO $pdo, string $dbFile): void {
             $stmt->execute([$key, $value]);
         } catch (Exception $e) {
             // Setting already exists
+        }
+    }
+
+    migrate_branding_settings($pdo);
+}
+
+function migrate_branding_settings(PDO $pdo): void {
+    // Upgrade existing installs from ShelfSense / placeholder branding
+    $updates = [
+        'company_name' => [
+            'old' => ['Your Company Name', 'ShelfSense', 'ShelfSense POS'],
+            'new' => 'C F Trading ENT',
+        ],
+        'company_subtitle' => [
+            'old' => ['Business Description', 'Smart POS & Inventory System for Modern Retail'],
+            'new' => 'POS & Inventory',
+        ],
+        'company_logo' => [
+            'old' => ['assets/logo.png', 'assets/C F Trading ENT.jpeg'],
+            'new' => 'assets/cf-trading-ent-logo.jpeg',
+        ],
+    ];
+
+    foreach ($updates as $key => $cfg) {
+        $placeholders = implode(',', array_fill(0, count($cfg['old']), '?'));
+        $sql = "UPDATE company_settings SET setting_value = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE setting_key = ? AND setting_value IN ($placeholders)";
+        $params = array_merge([$cfg['new'], $key], $cfg['old']);
+        try {
+            $pdo->prepare($sql)->execute($params);
+        } catch (Exception $e) {
+            // Ignore migration errors on older schemas
         }
     }
 }

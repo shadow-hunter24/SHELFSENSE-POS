@@ -1,7 +1,7 @@
 @echo off
 cls
 echo ========================================
-echo ShelfSense POS
+echo C F Trading ENT POS
 echo ========================================
 echo.
 echo Starting PHP Development Server...

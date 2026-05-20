@@ -1,10 +1,10 @@
 {
-  "name": "shelfsense-pos",
+  "name": "cf-trading-ent-pos",
   "version": "1.0.0",
-  "description": "ShelfSense POS - Smart retail management system that helps businesses track stock, monitor sales, and prevent losses from expired products.",
+  "description": "C F Trading ENT POS - Retail management system for stock, sales, and expiry tracking.",
   "main": "main.js",
   "private": true,
-  "author": "ShelfSense",
+  "author": "C F Trading ENT",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder",
@@ -14,8 +14,8 @@
     "build-all": "electron-builder --win nsis --win portable"
   },
   "build": {
-    "appId": "com.shelfsense.pos",
-    "productName": "ShelfSense POS",
+    "appId": "com.cftradingent.pos",
+    "productName": "C F Trading ENT POS",
     "publish": {
       "provider": "github",
       "owner": "SHADOWHUNTER2910",
@@ -25,6 +25,9 @@
     "directories": {
       "output": "dist/internal"
     },
+    "asarUnpack": [
+      "cf-trading-ent.ico"
+    ],
     "extraResources": [
       {
         "from": "php",
@@ -43,6 +46,8 @@
           "src/**/*",
           "config.php",
           "assets/**/*",
+          "assets/cf-trading-ent-logo.jpeg",
+          "assets/logo.ico",
           "data/**/*"
         ]
       }
@@ -62,8 +67,8 @@
           ]
         }
       ],
-      "icon": "shelfsense.ico",
-      "publisherName": "ShelfSense",
+      "icon": "cf-trading-ent.ico",
+      "publisherName": "C F Trading ENT",
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
@@ -71,10 +76,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "ShelfSense POS",
-      "installerIcon": "shelfsense.ico",
-      "uninstallerIcon": "shelfsense.ico",
-      "installerHeaderIcon": "shelfsense.ico",
+      "shortcutName": "C F Trading ENT POS",
+      "installerIcon": "cf-trading-ent.ico",
+      "uninstallerIcon": "cf-trading-ent.ico",
+      "installerHeaderIcon": "cf-trading-ent.ico",
       "artifactName": "setup-core.${ext}",
       "deleteAppDataOnUninstall": false
     },
@@ -85,7 +90,7 @@
       "main.js",
       "preload.js",
       "package.json",
-      "shelfsense.ico",
+      "cf-trading-ent.ico",
       "node_modules/**/*"
     ],
     "fileAssociations": [

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, powerSaveBlocker, dialog } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, powerSaveBlocker, dialog, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -7,7 +7,7 @@ const { autoUpdater } = require('electron-updater');
 
 let phpServer = null;
 let mainWindow = null;
-let serverUrl = 'http://127.0.0.1:8000/';
+let serverUrl = 'http://127.0.0.1:8000/index.php';
 let isServerStarting = false;
 let windowCreated = false;
 let serverCheckInProgress = false;
@@ -19,7 +19,7 @@ if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
 
 function getLogFilePath() {
   const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  return path.join(logDir, `shelfsense-${date}.log`);
+  return path.join(logDir, `cf-trading-ent-${date}.log`);
 }
 
 function writeLog(entry) {
@@ -41,7 +41,7 @@ ipcMain.handle('write-log', async (event, entry) => {
 ipcMain.handle('read-logs', async (event, date) => {
   try {
     const logFile = date 
-      ? path.join(logDir, `shelfsense-${date}.log`)
+      ? path.join(logDir, `cf-trading-ent-${date}.log`)
       : getLogFilePath();
     if (!fs.existsSync(logFile)) return [];
     const content = fs.readFileSync(logFile, 'utf8');
@@ -56,8 +56,8 @@ ipcMain.handle('get-log-dates', async () => {
   try {
     if (!fs.existsSync(logDir)) return [];
     const files = fs.readdirSync(logDir)
-      .filter(f => f.startsWith('shelfsense-') && f.endsWith('.log'))
-      .map(f => f.replace('shelfsense-', '').replace('.log', ''))
+      .filter(f => (f.startsWith('cf-trading-ent-') || f.startsWith('shelfsense-')) && f.endsWith('.log'))
+      .map(f => f.replace('cf-trading-ent-', '').replace('shelfsense-', '').replace('.log', ''))
       .sort()
       .reverse(); // Most recent first
     return files;
@@ -66,8 +66,35 @@ ipcMain.handle('get-log-dates', async () => {
   }
 });
 
+function getAppIconPath() {
+  const iconName = 'cf-trading-ent.ico';
+  const unpackedIcon = path.join(process.resourcesPath, 'app.asar.unpacked', iconName);
+  const candidates = [
+    unpackedIcon,
+    path.join(__dirname, iconName),
+    path.join(process.resourcesPath, iconName),
+    path.join(__dirname, '..', 'assets', 'logo.ico'),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+function getWindowIcon() {
+  const iconPath = getAppIconPath();
+  if (!iconPath) return undefined;
+  try {
+    const image = nativeImage.createFromPath(iconPath);
+    return image.isEmpty() ? undefined : image;
+  } catch (e) {
+    console.warn('Failed to load app icon:', e.message);
+    return undefined;
+  }
+}
+
 // Log app start
-writeLog({ level: 'INFO', category: 'APP', message: 'ShelfSense application started' });
+writeLog({ level: 'INFO', category: 'APP', message: 'C F Trading ENT application started' });
 // ─────────────────────────────────────────────────────────────────
 
 // ─── Auto Updater ────────────────────────────────────────────────
@@ -420,12 +447,13 @@ function createWindow() {
     return;
   }
 
+  const windowIcon = getWindowIcon();
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     show: false,
-    title: "ShelfSense POS",
-    icon: path.join(__dirname, '..', 'assets', 'logo.png'),
+    title: "C F Trading ENT POS",
+    ...(windowIcon ? { icon: windowIcon } : {}),
     webPreferences: { 
       nodeIntegration: false, 
       contextIsolation: true,
@@ -458,7 +486,7 @@ function createWindow() {
           el.removeAttribute('inert');
         }
       });
-      console.log('ShelfSense: Input stability fix active');
+      console.log('C F Trading ENT: Input stability fix active');
     `).catch(err => console.error('Input fix script error:', err));
   });
   
@@ -557,6 +585,11 @@ ipcMain.handle('print-receipt', async (event, htmlContent) => {
 
 app.whenReady().then(() => {
   console.log('Electron app ready, starting PHP server...');
+
+  app.setName('C F Trading ENT POS');
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.cftradingent.pos');
+  }
   
   // CRITICAL: Prevent system from throttling the app
   powerSaveBlockerId = powerSaveBlocker.start('prevent-app-suspension');
@@ -616,19 +649,19 @@ app.whenReady().then(() => {
       label: 'Help',
       submenu: [
         {
-          label: 'About ShelfSense POS',
+          label: 'About C F Trading ENT POS',
           click: () => {
             const { dialog } = require('electron');
             dialog.showMessageBox(mainWindow, {
               type: 'info',
-              title: 'About ShelfSense POS',
-              message: 'ShelfSense POS',
+              title: 'About C F Trading ENT POS',
+              message: 'C F Trading ENT POS',
               detail: 
                 'Version: 1.0.0\n\n' +
-                'Smart POS & Inventory System for Modern Retail\n\n' +
-                'ShelfSense POS is a smart retail management system that helps businesses track stock, monitor sales, and prevent losses from expired products — all in one powerful offline desktop solution.\n\n' +
+                'POS & Inventory System\n\n' +
+                'C F Trading ENT POS helps businesses track stock, monitor sales, and prevent losses from expired products — all in one offline desktop solution.\n\n' +
                 'Track Stock. Prevent Loss. Grow Profit.\n\n' +
-                '© 2026 ShelfSense. All rights reserved.',
+                '© 2026 C F Trading ENT. All rights reserved.',
               buttons: ['OK']
             });
           }
@@ -664,7 +697,7 @@ app.on('window-all-closed', () => {
       powerSaveBlocker.stop(powerSaveBlockerId);
       console.log('Power save blocker stopped');
     }
-    writeLog({ level: 'INFO', category: 'APP', message: 'ShelfSense application closed' });
+    writeLog({ level: 'INFO', category: 'APP', message: 'C F Trading ENT application closed' });
     stopPhpServer();
     isServerStarting = false;
     windowCreated = false;

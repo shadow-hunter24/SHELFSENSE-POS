@@ -1,12 +1,12 @@
-; Password Launcher for ShelfSense POS
+; Password Launcher for C F Trading ENT POS
 ; This wraps the real installer with password protection
 
 !include "LogicLib.nsh"
 !include "nsDialogs.nsh"
 
-Name "ShelfSense POS"
-OutFile "dist\ShelfSense POS-Setup-1.0.0.exe"
-Icon "shelfsense.ico"
+Name "C F Trading ENT POS"
+OutFile "dist\C F Trading ENT POS-Setup-1.0.0.exe"
+Icon "cf-trading-ent.ico"
 RequestExecutionLevel admin
 ShowInstDetails nevershow
 
@@ -31,7 +31,7 @@ Function PasswordPage
   nsDialogs::Create 1018
   Pop $pwdDlg
   
-  ${NSD_CreateLabel} 0 0 100% 40u "ShelfSense POS$\n$\nThis is licensed software. Enter the installation password provided by your vendor to continue."
+  ${NSD_CreateLabel} 0 0 100% 40u "C F Trading ENT POS$\n$\nThis is licensed software. Enter the installation password provided by your vendor to continue."
   Pop $0
   
   ${NSD_CreateLabel} 0 50u 100% 12u "Installation Password:"
