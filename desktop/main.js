@@ -7,7 +7,7 @@ const { autoUpdater } = require('electron-updater');
 
 let phpServer = null;
 let mainWindow = null;
-let serverUrl = 'http://127.0.0.1:8000/index.php';
+let serverUrl = 'http://127.0.0.1:8000/';
 let isServerStarting = false;
 let windowCreated = false;
 let serverCheckInProgress = false;
@@ -91,6 +91,18 @@ function getWindowIcon() {
     console.warn('Failed to load app icon:', e.message);
     return undefined;
   }
+}
+
+function resolveServerUrl(appDir) {
+  const indexPhp = path.join(appDir, 'index.php');
+  const indexHtml = path.join(appDir, 'index.html');
+  if (fs.existsSync(indexPhp)) {
+    return 'http://127.0.0.1:8000/index.php';
+  }
+  if (fs.existsSync(indexHtml)) {
+    return 'http://127.0.0.1:8000/index.html';
+  }
+  return 'http://127.0.0.1:8000/';
 }
 
 // Log app start
@@ -223,6 +235,9 @@ function startPhpServer() {
     isServerStarting = false;
     return;
   }
+
+  serverUrl = resolveServerUrl(appDir);
+  console.log('Server URL:', serverUrl);
 
   // DB path: Use the main project database for desktop executable
   // In development, use the project's data folder
