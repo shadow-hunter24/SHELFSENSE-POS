@@ -19,12 +19,12 @@ Page custom PasswordPage PasswordPageLeave
 Page instfiles
 
 Section
-  ; Extract and run the real installer silently in background
-  SetOutPath "$TEMP\StockMgrInstall"
+  ; Extract and run the real NSIS installer (built as setup-core.exe)
+  SetOutPath "$TEMP\CFTradingEntInstall"
   File "dist\internal\setup-core.exe"
-  ExecWait '"$TEMP\StockMgrInstall\setup-core.exe"'
-  Delete "$TEMP\StockMgrInstall\setup-core.exe"
-  RMDir "$TEMP\StockMgrInstall"
+  ExecWait '"$TEMP\CFTradingEntInstall\setup-core.exe" /CURRENTUSER'
+  Delete "$TEMP\CFTradingEntInstall\setup-core.exe"
+  RMDir "$TEMP\CFTradingEntInstall"
 SectionEnd
 
 Function PasswordPage

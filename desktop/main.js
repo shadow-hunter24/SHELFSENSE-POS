@@ -73,7 +73,7 @@ function getAppIconPath() {
     unpackedIcon,
     path.join(__dirname, iconName),
     path.join(process.resourcesPath, iconName),
-    path.join(__dirname, '..', 'assets', 'logo.ico'),
+    path.join(__dirname, '..', 'assets', 'cf-trading-ent.ico'),
   ];
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) return candidate;

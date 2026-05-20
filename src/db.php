@@ -357,7 +357,7 @@ function migrate_branding_settings(PDO $pdo): void {
             'new' => 'POS & Inventory',
         ],
         'company_logo' => [
-            'old' => ['assets/logo.png', 'assets/C F Trading ENT.jpeg'],
+            'old' => ['assets/logo.png', 'assets/logo.ico', 'assets/C F Trading ENT.jpeg'],
             'new' => 'assets/cf-trading-ent-logo.jpeg',
         ],
     ];

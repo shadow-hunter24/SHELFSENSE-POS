@@ -8,10 +8,12 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder",
-    "build-win": "electron-builder --win",
+    "build-win": "build-protected.bat",
+    "build-core": "electron-builder --win nsis",
     "build-portable": "electron-builder --win portable",
     "build-installer": "electron-builder --win nsis",
-    "build-all": "electron-builder --win nsis --win portable"
+    "build-all": "electron-builder --win nsis --win portable",
+    "build-protected": "build-protected.bat"
   },
   "build": {
     "appId": "com.cftradingent.pos",
@@ -47,7 +49,7 @@
           "config.php",
           "assets/**/*",
           "assets/cf-trading-ent-logo.jpeg",
-          "assets/logo.ico",
+          "assets/cf-trading-ent.ico",
           "data/**/*"
         ]
       }
