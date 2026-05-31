@@ -14,15 +14,15 @@ if not exist "node_modules\" (
   echo.
 )
 
-echo [0/4] Checking for VC++ Redistributable...
+echo Step 0 of 4 - Checking for VC++ Redistributable...
 if not exist "vc_redist.x64.exe" (
-  echo Downloading Microsoft Visual C++ 2015-2022 Redistributable (x64)...
+  echo Downloading Microsoft Visual C++ 2015-2022 Redistributable x64...
   echo This is required so PHP works on PCs without Visual Studio installed.
   powershell -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile 'vc_redist.x64.exe' -UseBasicParsing"
   if errorlevel 1 (
     echo WARNING: Could not download vc_redist.x64.exe automatically.
     echo Please download it manually from: https://aka.ms/vs/17/release/vc_redist.x64.exe
-    echo and place it in the desktop\ folder, then re-run this script.
+    echo and place it in the desktop folder, then re-run this script.
     pause
     exit /b 1
   )
@@ -32,7 +32,7 @@ if not exist "vc_redist.x64.exe" (
 )
 echo.
 
-echo [1/4] Building core installer (setup-core.exe)...
+echo Step 1 of 4 - Building core installer setup-core.exe...
 call npm run build-core
 if errorlevel 1 (
   echo ERROR: electron-builder failed.
@@ -45,7 +45,7 @@ if not exist "dist\internal\setup-core.exe" (
 )
 
 echo.
-echo [2/4] Building portable app...
+echo Step 2 of 4 - Building portable app...
 call npm run build-portable
 if errorlevel 1 (
   echo ERROR: portable build failed.
@@ -58,7 +58,7 @@ for %%f in ("dist\internal\*Portable*.exe") do (
 )
 
 echo.
-echo [3/4] Wrapping with password-protected launcher...
+echo Step 3 of 4 - Wrapping with password-protected launcher...
 
 set "MAKENSIS="
 if exist "C:\Program Files (x86)\NSIS\makensis.exe" set "MAKENSIS=C:\Program Files (x86)\NSIS\makensis.exe"
@@ -80,7 +80,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [4/4] Cleaning up intermediate files...
+echo Step 4 of 4 - Cleaning up intermediate files...
 if exist "dist\internal\" rmdir /s /q "dist\internal"
 if exist "dist\win-unpacked\" rmdir /s /q "dist\win-unpacked"
 
