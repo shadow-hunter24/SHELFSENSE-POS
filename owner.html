@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>C F Trading ENT — Owner Dashboard</title>
+  <link rel="icon" type="image/x-icon" href="assets/cf-trading-ent.ico">
   <link href="assets/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/css/bootstrap-icons.css" rel="stylesheet">
   <style>
@@ -45,7 +46,12 @@
 <!-- Login Screen -->
 <div id="pin-screen" class="pin-screen">
   <div class="pin-card">
-    <div style="font-size:48px;margin-bottom:12px;">🔐</div>
+    <div style="margin-bottom:16px;">
+      <img src="assets/cf-trading-ent-logo.jpeg" alt="C F Trading ENT"
+           style="max-height:90px;width:auto;border-radius:8px;"
+           onerror="this.style.display='none';document.getElementById('login-emoji').style.display='block';">
+      <div id="login-emoji" style="display:none;font-size:48px;">🔐</div>
+    </div>
     <h2 style="font-size:20px;font-weight:700;margin-bottom:4px;">Owner Dashboard</h2>
     <p style="color:#94a3b8;font-size:13px;margin-bottom:24px;">Sign in with your admin account</p>
     <input type="text" id="login-username" class="input-dark mb-2" placeholder="Username"
@@ -61,12 +67,19 @@
 <div id="app" style="display:none;">
   <!-- Top Bar -->
   <div class="top-bar d-flex justify-content-between align-items-center">
-    <div>
-      <h1><i class="bi bi-speedometer2"></i> <span id="company-name-bar">Owner Dashboard</span></h1>
-      <small id="last-updated" style="font-size:10px;color:#93c5fd;"></small>
+    <div class="d-flex align-items-center gap-2">
+      <img src="assets/cf-trading-ent-logo.jpeg" alt="CF Trading ENT"
+           style="height:32px;width:auto;border-radius:4px;background:white;padding:2px;"
+           onerror="this.style.display='none';">
+      <div>
+        <h1><span id="company-name-bar">Owner Dashboard</span></h1>
+        <small id="last-updated" style="font-size:10px;color:#93c5fd;"></small>
+      </div>
     </div>
-    <button class="btn-sm-dark" onclick="loadCurrentTab()"><i class="bi bi-arrow-clockwise"></i></button>
-    <button class="btn-sm-dark ms-1" onclick="doLogout()" title="Sign out"><i class="bi bi-box-arrow-right"></i></button>
+    <div class="d-flex gap-1">
+      <button class="btn-sm-dark" onclick="loadCurrentTab()"><i class="bi bi-arrow-clockwise"></i></button>
+      <button class="btn-sm-dark" onclick="doLogout()" title="Sign out"><i class="bi bi-box-arrow-right"></i></button>
+    </div>
   </div>
 
   <div style="padding:14px;max-width:600px;margin:0 auto;">
