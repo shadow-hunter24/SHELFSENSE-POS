@@ -4777,15 +4777,35 @@
       modal.show();
     }
 
-    async function downloadCSVTemplate() {
-      try {
-        // Fetch the template file from the server
-        const response = await fetch('bulk-import-template-full.csv');
-        if (!response.ok) throw new Error('Could not load template file');
-        const csvText = await response.text();
+    function downloadCSVTemplate() {
+      // CSV content is embedded directly — works in Electron and browsers
+      // with no dependency on the server serving the file.
+      const csvContent = [
+        'Product Name,Cost Price,Selling Price,Quantity,Expiry Date',
+        'Fresh Milk 1L,8.00,12.00,50,2027-04-15',
+        'Sliced Bread,5.00,7.50,40,2027-03-20',
+        'Yogurt 500ml,6.00,9.00,30,2027-04-01',
+        'Eggs 12 Pack,15.00,20.00,25,2027-04-10',
+        'Butter 250g,12.00,18.00,20,2027-05-15',
+        'Orange Juice 1L,10.00,15.00,35,2027-04-20',
+        'Mineral Water 1.5L,2.00,3.50,100,2028-06-08',
+        'Milo 400g,18.00,26.00,35,2028-08-20',
+        'Paracetamol 500mg 16 Pack,5.00,8.00,40,2028-12-31',
+        'Ibuprofen 400mg 16 Pack,6.00,9.00,35,2028-11-30',
+        'Rice 5kg,35.00,50.00,40,',
+        'Sugar 2kg,12.00,18.00,50,',
+        'Cooking Oil 2L,20.00,28.00,30,',
+        'Toilet Paper 4 Rolls,8.00,12.00,60,',
+        'Laundry Detergent 1kg,15.00,22.00,25,',
+        'Dish Soap 500ml,5.00,8.00,45,',
+        'Shampoo 400ml,12.00,18.00,30,',
+        'Toothpaste 150g,6.00,9.00,50,',
+        'Bar Soap 3 Pack,5.00,8.00,55,',
+        'Notebook A4,4.00,6.50,60,',
+      ].join('\n');
 
-        // Create a Blob and trigger download — works in both Electron and browsers
-        const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+      try {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -4793,7 +4813,6 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        // Release the object URL after a short delay
         setTimeout(() => URL.revokeObjectURL(url), 2000);
       } catch (error) {
         alert('Failed to download template: ' + error.message);
