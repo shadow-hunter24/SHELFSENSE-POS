@@ -1376,7 +1376,7 @@
                 <span><kbd>F2</kbd> Cash received</span>
                 <span><kbd>F9</kbd> Submit receipt</span>
                 <span><kbd>F10</kbd> Clear receipt</span>
-                <span><kbd>1</kbd> Cash &nbsp;<kbd>2</kbd> MoMo &nbsp;<kbd>3</kbd> Card &nbsp;<kbd>4</kbd> Credit</span>
+                <span><kbd>1</kbd> Cash &nbsp;<kbd>2</kbd> MoMo &nbsp;<kbd>3</kbd> Credit</span>
                 <span><kbd>+</kbd> / <kbd>-</kbd> Qty up/down</span>
               </div>
             </div>
@@ -1548,9 +1548,6 @@
                               <button type="button" class="btn btn-outline-primary payment-method-btn" data-method="mobile_money" onclick="selectPaymentMethod('mobile_money')">
                                 <i class="bi bi-phone"></i> Mobile Money
                               </button>
-                              <button type="button" class="btn btn-outline-info payment-method-btn" data-method="card" onclick="selectPaymentMethod('card')">
-                                <i class="bi bi-credit-card"></i> Card
-                              </button>
                               <button type="button" class="btn btn-outline-warning payment-method-btn" data-method="credit" onclick="selectPaymentMethod('credit')">
                                 <i class="bi bi-clock-history"></i> Credit
                               </button>
@@ -1561,12 +1558,6 @@
                             <div id="mobile-money-ref" class="d-none">
                               <input type="text" id="mobile-money-number" class="form-control mt-2"
                                 placeholder="Mobile Money number or reference (optional)" autocomplete="off">
-                            </div>
-                            
-                            <!-- Card Reference -->
-                            <div id="card-ref" class="d-none">
-                              <input type="text" id="card-reference" class="form-control mt-2"
-                                placeholder="Card last 4 digits or reference (optional)" autocomplete="off">
                             </div>
                             
                             <!-- Credit Note -->
@@ -3182,7 +3173,6 @@
                       <option value="cash">Cash</option>
                       <option value="momo">Mobile Money</option>
                       <option value="bank">Bank Transfer</option>
-                      <option value="card">Card</option>
                     </select>
                   </div>
                   <div class="mb-3">
@@ -5774,37 +5764,34 @@
       
       // Update button styles
       document.querySelectorAll('.payment-method-btn').forEach(btn => {
-        btn.classList.remove('active', 'btn-success', 'btn-primary', 'btn-info', 'btn-warning');
+        btn.classList.remove('active', 'btn-success', 'btn-primary', 'btn-warning');
         btn.classList.add('btn-outline-' + (
           btn.dataset.method === 'cash' ? 'success' :
-          btn.dataset.method === 'mobile_money' ? 'primary' :
-          btn.dataset.method === 'card' ? 'info' : 'warning'
+          btn.dataset.method === 'mobile_money' ? 'primary' : 'warning'
         ));
       });
       
       const activeBtn = document.querySelector(`.payment-method-btn[data-method="${method}"]`);
       if (activeBtn) {
-        activeBtn.classList.remove('btn-outline-success', 'btn-outline-primary', 'btn-outline-info', 'btn-outline-warning');
+        activeBtn.classList.remove('btn-outline-success', 'btn-outline-primary', 'btn-outline-warning');
         activeBtn.classList.add('active', 'btn-' + (
           method === 'cash' ? 'success' :
-          method === 'mobile_money' ? 'primary' :
-          method === 'card' ? 'info' : 'warning'
+          method === 'mobile_money' ? 'primary' : 'warning'
         ));
       }
       
       // Show/hide relevant sections
       document.getElementById('mobile-money-ref').classList.toggle('d-none', method !== 'mobile_money');
-      document.getElementById('card-ref').classList.toggle('d-none', method !== 'card');
       document.getElementById('credit-note-div').classList.toggle('d-none', method !== 'credit');
       
-      // For credit/card/mobile money - hide cash received, show N/A for change
+      // For credit/mobile money - hide cash received
       const cashSection = document.getElementById('cash-received-section');
       const changeLabel = document.getElementById('change-label');
       if (method === 'credit') {
         cashSection.classList.add('d-none');
         if (changeLabel) changeLabel.textContent = 'Balance Owed:';
         document.getElementById('cash-received').value = '0';
-      } else if (method === 'mobile_money' || method === 'card') {
+      } else if (method === 'mobile_money') {
         cashSection.classList.add('d-none');
         if (changeLabel) changeLabel.textContent = 'Amount Paid:';
         document.getElementById('cash-received').value = '0';
@@ -7706,8 +7693,6 @@
         receiptData.payment_method = paymentMethod;
         receiptData.payment_reference = paymentMethod === 'mobile_money' 
           ? (document.getElementById('mobile-money-number').value || '')
-          : paymentMethod === 'card'
-          ? (document.getElementById('card-reference').value || '')
           : '';
         receiptData.cash_received = cashReceived;
         receiptData.change_given = paymentMethod === 'credit' ? 0 : Math.max(0, cashReceived - total);
@@ -8437,9 +8422,6 @@
           if (!isTyping) { e.preventDefault(); selectPaymentMethod('mobile_money'); }
           break;
         case '3':
-          if (!isTyping) { e.preventDefault(); selectPaymentMethod('card'); }
-          break;
-        case '4':
           if (!isTyping) { e.preventDefault(); selectPaymentMethod('credit'); }
           break;
       }
