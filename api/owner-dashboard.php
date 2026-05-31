@@ -168,14 +168,22 @@ try {
                 $alerts[] = ['type'=>'no_sale_gap','severity'=>'danger','title'=>round($gap,1).'h gap with no sales','detail'=>'From '.date('H:i',strtotime($times[$i-1])).' to '.date('H:i',strtotime($times[$i])),'time'=>$times[$i-1]];
             }
         }
-        // Check last sale to now — only flag during business hours (6am–10pm)
-        // to avoid false alerts when the shop is legitimately closed
-        $currentHour = (int)date('G'); // 0-23
+        // Check last sale to now — use SQLite's own clock so both sides are
+        // in the same timezone (avoids UTC vs local time false positives).
+        // Only flag during business hours (6am–10pm local SQLite time).
+        $currentHour = (int)date('G');
         $duringBusinessHours = ($currentHour >= 6 && $currentHour < 22);
         if (!empty($times) && $duringBusinessHours) {
-            $hoursSinceLast = (time() - strtotime(end($times))) / 3600;
+            $gapStmt = $pdo->prepare("
+                SELECT CAST((julianday('now') - julianday(MAX(created_at))) * 24 AS REAL) as hours_since
+                FROM receipts
+                WHERE DATE(created_at) = ?
+            ");
+            $gapStmt->execute([$today]);
+            $hoursSinceLast = (float)$gapStmt->fetchColumn();
             if ($hoursSinceLast >= 2) {
-                $alerts[] = ['type'=>'no_sale_gap','severity'=>'danger','title'=>round($hoursSinceLast,1).'h since last sale','detail'=>'Last sale at '.date('H:i',strtotime(end($times))),'time'=>end($times)];
+                $lastTime = end($times);
+                $alerts[] = ['type'=>'no_sale_gap','severity'=>'danger','title'=>round($hoursSinceLast,1).'h since last sale','detail'=>'Last sale at '.date('H:i',strtotime($lastTime)),'time'=>$lastTime];
             }
         }
 
