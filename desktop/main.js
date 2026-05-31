@@ -381,13 +381,19 @@ function startPhpServer() {
       if (code !== 0) {
         writeLog({ level: 'ERROR', category: 'APP', message: 'PHP test exited with code: ' + code });
         const { dialog, shell } = require('electron');
-        // 0xC0000135 = -1073741515 = 3221225781 = missing DLL (VC++ runtime not installed)
+        // 0xC0000135 = 3221225781 = missing VC++ DLL
+        // 0xFFFFFFFE = 4294967294 = killed by antivirus/Windows Defender
         const isMissingDll = (code === 3221225781 || code === -1073741515);
+        const isBlocked    = (code === 4294967294 || code === -2);
         dialog.showMessageBox({
           type: 'error',
-          title: 'PHP Error — Missing Runtime',
+          title: isMissingDll ? 'PHP Error — Missing Runtime'
+               : isBlocked   ? 'PHP Blocked by Antivirus'
+               :                'PHP Startup Error',
           message: isMissingDll
             ? 'Microsoft Visual C++ Runtime is not installed.'
+            : isBlocked
+            ? 'Windows Defender or Antivirus is blocking PHP.'
             : 'Bundled PHP failed to start (code ' + code + ').',
           detail: isMissingDll
             ? 'The app requires the Microsoft Visual C++ 2015-2022 Redistributable (x64).\n\n' +
@@ -396,6 +402,15 @@ function startPhpServer() {
               '2. Run the downloaded vc_redist.x64.exe\n' +
               '3. Restart your PC\n' +
               '4. Launch C F Trading ENT POS again'
+            : isBlocked
+            ? 'Windows Defender or your antivirus has blocked the bundled PHP engine.\n\n' +
+              'Steps to fix:\n' +
+              '1. Open Windows Security → Virus & threat protection\n' +
+              '2. Click "Protection history"\n' +
+              '3. Find the blocked item (php.exe) and click "Allow"\n' +
+              '4. OR add an exclusion for the app install folder:\n' +
+              '   C:\\Users\\[YourName]\\AppData\\Local\\Programs\\C F Trading ENT POS\n' +
+              '5. Restart the app'
             : 'Please try reinstalling the application.\n\nIf the problem persists, contact support.',
           buttons: isMissingDll ? ['Download & Install VC++ Runtime', 'Close'] : ['Close'],
           defaultId: 0
