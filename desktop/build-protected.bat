@@ -14,7 +14,25 @@ if not exist "node_modules\" (
   echo.
 )
 
-echo [1/3] Building core installer (setup-core.exe)...
+echo [0/4] Checking for VC++ Redistributable...
+if not exist "vc_redist.x64.exe" (
+  echo Downloading Microsoft Visual C++ 2015-2022 Redistributable (x64)...
+  echo This is required so PHP works on PCs without Visual Studio installed.
+  powershell -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile 'vc_redist.x64.exe' -UseBasicParsing"
+  if errorlevel 1 (
+    echo WARNING: Could not download vc_redist.x64.exe automatically.
+    echo Please download it manually from: https://aka.ms/vs/17/release/vc_redist.x64.exe
+    echo and place it in the desktop\ folder, then re-run this script.
+    pause
+    exit /b 1
+  )
+  echo VC++ Redistributable downloaded successfully.
+) else (
+  echo vc_redist.x64.exe already present, skipping download.
+)
+echo.
+
+echo [1/4] Building core installer (setup-core.exe)...
 call npm run build-core
 if errorlevel 1 (
   echo ERROR: electron-builder failed.
@@ -27,7 +45,20 @@ if not exist "dist\internal\setup-core.exe" (
 )
 
 echo.
-echo [2/3] Wrapping with password-protected launcher...
+echo [2/4] Building portable app...
+call npm run build-portable
+if errorlevel 1 (
+  echo ERROR: portable build failed.
+  exit /b 1
+)
+
+for %%f in ("dist\internal\*Portable*.exe") do (
+  echo Copying portable to dist\...
+  copy /Y "%%f" "dist\" >nul
+)
+
+echo.
+echo [3/4] Wrapping with password-protected launcher...
 
 set "MAKENSIS="
 if exist "C:\Program Files (x86)\NSIS\makensis.exe" set "MAKENSIS=C:\Program Files (x86)\NSIS\makensis.exe"
@@ -49,7 +80,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [3/3] Cleaning up intermediate files...
+echo [4/4] Cleaning up intermediate files...
 if exist "dist\internal\" rmdir /s /q "dist\internal"
 if exist "dist\win-unpacked\" rmdir /s /q "dist\win-unpacked"
 
@@ -58,7 +89,7 @@ echo ========================================
 echo Build complete!
 echo ========================================
 echo.
-echo Password-protected installer:
-echo   dist\C F Trading ENT POS-Setup-1.0.0.exe
+echo   dist\C F Trading ENT POS-Setup-1.0.0.exe  (password required, includes VC++ runtime)
+echo   dist\C F Trading ENT POS-Portable-1.0.0.exe
 echo.
 endlocal

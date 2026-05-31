@@ -347,9 +347,69 @@ function startPhpServer() {
       actuallyStartServer();
     });
   } else {
-    // Production: skip PHP test and proceed directly
-    console.log('Production mode: skipping PHP test, using bundled PHP...');
-    actuallyStartServer();
+    console.log('Production mode: verifying bundled PHP...');
+    const testPhp = spawn(phpExe, ['--version'], { stdio: 'pipe', windowsHide: true });
+    testPhp.on('error', (error) => {
+      writeLog({ level: 'ERROR', category: 'APP', message: 'PHP failed: ' + error.message });
+      const { dialog, shell } = require('electron');
+      const missingDll = error.code === 'ENOENT' || error.message.includes('ENOENT');
+      dialog.showMessageBox({
+        type: 'error',
+        title: 'PHP Startup Error',
+        message: 'Could not start the bundled PHP engine.',
+        detail:
+          'This usually means the Microsoft Visual C++ Runtime is not installed on this PC.\n\n' +
+          'Please install it from Microsoft:\n' +
+          'https://aka.ms/vs/17/release/vc_redist.x64.exe\n\n' +
+          'Steps:\n' +
+          '1. Click "Open Download Page" below\n' +
+          '2. Download and install vc_redist.x64.exe\n' +
+          '3. Restart your PC\n' +
+          '4. Launch C F Trading ENT POS again\n\n' +
+          'Technical detail: ' + error.message,
+        buttons: ['Open Download Page', 'Close'],
+        defaultId: 0
+      }).then(result => {
+        if (result.response === 0) {
+          shell.openExternal('https://aka.ms/vs/17/release/vc_redist.x64.exe');
+        }
+        isServerStarting = false;
+        app.quit();
+      });
+    });
+    testPhp.on('close', (code) => {
+      if (code !== 0) {
+        writeLog({ level: 'ERROR', category: 'APP', message: 'PHP test exited with code: ' + code });
+        const { dialog, shell } = require('electron');
+        // 0xC0000135 = -1073741515 = 3221225781 = missing DLL (VC++ runtime not installed)
+        const isMissingDll = (code === 3221225781 || code === -1073741515);
+        dialog.showMessageBox({
+          type: 'error',
+          title: 'PHP Error — Missing Runtime',
+          message: isMissingDll
+            ? 'Microsoft Visual C++ Runtime is not installed.'
+            : 'Bundled PHP failed to start (code ' + code + ').',
+          detail: isMissingDll
+            ? 'The app requires the Microsoft Visual C++ 2015-2022 Redistributable (x64).\n\n' +
+              'Steps to fix:\n' +
+              '1. Click "Download & Install" below\n' +
+              '2. Run the downloaded vc_redist.x64.exe\n' +
+              '3. Restart your PC\n' +
+              '4. Launch C F Trading ENT POS again'
+            : 'Please try reinstalling the application.\n\nIf the problem persists, contact support.',
+          buttons: isMissingDll ? ['Download & Install VC++ Runtime', 'Close'] : ['Close'],
+          defaultId: 0
+        }).then(result => {
+          if (isMissingDll && result.response === 0) {
+            shell.openExternal('https://aka.ms/vs/17/release/vc_redist.x64.exe');
+          }
+          isServerStarting = false;
+          app.quit();
+        });
+        return;
+      }
+      actuallyStartServer();
+    });
   }
 
   function actuallyStartServer() {
@@ -364,13 +424,14 @@ function startPhpServer() {
       });
     }
 
-    console.log('Starting PHP server with command:', phpExe, '-S', '0.0.0.0:8000');
+    console.log('Starting PHP server with command:', phpExe, '-S', '127.0.0.1:8000');
     console.log('Working directory:', appDir);
 
-    phpServer = spawn(phpExe, ['-S', '0.0.0.0:8000'], { 
+    phpServer = spawn(phpExe, ['-S', '127.0.0.1:8000'], { 
       cwd: appDir, 
       env,
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true
     });
 
     phpServer.stdout.on('data', (data) => {
@@ -577,14 +638,15 @@ ipcMain.handle('print-receipt', async (event, htmlContent) => {
     printWindow.webContents.print({
       silent: false,
       printBackground: true,
-      color: true,
+      color: false,
       margins: {
         marginType: 'none'
       },
       pageSize: {
-        width: 80000, // 80mm in microns
-        height: 297000 // A4 height, will auto-adjust
-      }
+        width: 80000,  // 80mm in microns
+        height: 297000 // tall enough for any receipt; thermal cuts automatically
+      },
+      scaleFactor: 100
     }, (success, errorType) => {
       if (!success) {
         console.log('Print cancelled or failed:', errorType);
