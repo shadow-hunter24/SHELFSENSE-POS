@@ -4,13 +4,9 @@ session_start();
 require __DIR__ . '/../src/db.php';
 header('Content-Type: application/json');
 
-// Debug session info
-error_log("Analytics API - Session user_id: " . ($_SESSION['user_id'] ?? 'not set'));
-error_log("Analytics API - Session role: " . ($_SESSION['role'] ?? 'not set'));
-
 if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
     http_response_code(403);
-    echo json_encode(['error' => 'forbidden', 'debug' => 'User not logged in or not admin']);
+    echo json_encode(['error' => 'forbidden']);
     exit;
 }
 
@@ -192,7 +188,7 @@ try {
                 
             case 'user_performance':
                 // User performance analytics
-                $period = $_GET['period'] ?? '30'; // days
+                $period = min(365, max(1, (int)($_GET['period'] ?? 30)));
                 $startDate = date('Y-m-d', strtotime("-{$period} days"));
                 
                 $stmt = $pdo->prepare('
@@ -214,7 +210,7 @@ try {
                 
             case 'product_performance':
                 // Product performance analytics
-                $period = $_GET['period'] ?? '30'; // days
+                $period = min(365, max(1, (int)($_GET['period'] ?? 30)));
                 $startDate = date('Y-m-d', strtotime("-{$period} days"));
                 
                 $stmt = $pdo->prepare('
@@ -248,7 +244,7 @@ try {
                 
             case 'profit_summary':
                 // Profit summary for a period
-                $period = $_GET['period'] ?? '30'; // days
+                $period = min(365, max(1, (int)($_GET['period'] ?? 30)));
                 $startDate = date('Y-m-d', strtotime("-{$period} days"));
                 
                 $stmt = $pdo->prepare('

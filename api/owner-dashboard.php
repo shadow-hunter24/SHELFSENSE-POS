@@ -19,8 +19,12 @@ if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
 try {
     // ── LIVE RECEIPT FEED ─────────────────────────────────────────
     if ($action === 'live_receipts') {
-        $limit = (int)($_GET['limit'] ?? 20);
-        $since = $_GET['since'] ?? null; // ISO datetime for polling
+        $limit = min(100, max(1, (int)($_GET['limit'] ?? 20)));
+        $since = $_GET['since'] ?? null;
+        // Validate $since is a proper datetime string to prevent injection
+        if ($since !== null) {
+            $since = preg_match('/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/', $since) ? $since : null;
+        }
         $query = 'SELECT r.id, r.invoice_number, r.customer_name, r.total, r.total_profit,
                          r.payment_method, r.created_at, r.created_by_username,
                          GROUP_CONCAT(ri.product_name || " x" || ri.quantity, ", ") as items
