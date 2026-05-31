@@ -168,8 +168,11 @@ try {
                 $alerts[] = ['type'=>'no_sale_gap','severity'=>'danger','title'=>round($gap,1).'h gap with no sales','detail'=>'From '.date('H:i',strtotime($times[$i-1])).' to '.date('H:i',strtotime($times[$i])),'time'=>$times[$i-1]];
             }
         }
-        // Check last sale to now
-        if (!empty($times)) {
+        // Check last sale to now — only flag during business hours (6am–10pm)
+        // to avoid false alerts when the shop is legitimately closed
+        $currentHour = (int)date('G'); // 0-23
+        $duringBusinessHours = ($currentHour >= 6 && $currentHour < 22);
+        if (!empty($times) && $duringBusinessHours) {
             $hoursSinceLast = (time() - strtotime(end($times))) / 3600;
             if ($hoursSinceLast >= 2) {
                 $alerts[] = ['type'=>'no_sale_gap','severity'=>'danger','title'=>round($hoursSinceLast,1).'h since last sale','detail'=>'Last sale at '.date('H:i',strtotime(end($times))),'time'=>end($times)];
