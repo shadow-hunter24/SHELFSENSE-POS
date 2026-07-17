@@ -12,6 +12,9 @@ let isServerStarting = false;
 let windowCreated = false;
 let serverCheckInProgress = false;
 let powerSaveBlockerId = null;
+let activeDbPath = null;
+let activeWritableDataDir = null;
+const MAX_BACKUPS_PER_DIR = 30;
 
 // ─── Logging Setup ───────────────────────────────────────────────
 const logDir = path.join(app.getPath('userData'), 'logs');
@@ -66,6 +69,64 @@ ipcMain.handle('get-log-dates', async () => {
   }
 });
 
+ipcMain.handle('get-app-info', async () => ({
+  isDesktop: true,
+  isPackaged: app.isPackaged,
+  version: app.getVersion(),
+  name: app.getName(),
+  userDataPath: app.getPath('userData'),
+  platform: process.platform,
+}));
+
+ipcMain.handle('open-user-data-folder', async () => {
+  const { shell } = require('electron');
+  await shell.openPath(app.getPath('userData'));
+});
+
+ipcMain.handle('backup-database', async () => createDatabaseBackup('manual'));
+
+ipcMain.handle('list-database-backups', async () => ({
+  ok: true,
+  items: listDatabaseBackups(),
+  documentsFolder: path.join(app.getPath('documents'), 'C F Trading ENT POS', 'backups'),
+  userDataFolder: path.join(app.getPath('userData'), 'backups'),
+  databasePath: activeDbPath,
+}));
+
+ipcMain.handle('restore-database', async (_event, backupPath) => restoreDatabaseFile(backupPath));
+
+ipcMain.handle('open-backup-folder', async () => {
+  const { shell } = require('electron');
+  const folder = path.join(app.getPath('documents'), 'C F Trading ENT POS', 'backups');
+  if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
+  await shell.openPath(folder);
+});
+
+ipcMain.handle('export-database', async () => {
+  if (!activeDbPath || !fs.existsSync(activeDbPath)) {
+    return { ok: false, error: 'Database not found' };
+  }
+  const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+    title: 'Export Database Backup',
+    defaultPath: path.join(app.getPath('documents'), formatBackupFilename()),
+    filters: [{ name: 'SQLite Database', extensions: ['sqlite'] }],
+  });
+  if (canceled || !filePath) return { ok: false, cancelled: true };
+  fs.copyFileSync(activeDbPath, filePath);
+  return { ok: true, path: filePath };
+});
+
+ipcMain.handle('import-database', async () => {
+  if (!activeDbPath) return { ok: false, error: 'Database path is not ready' };
+  const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
+    title: 'Import Database Backup',
+    filters: [{ name: 'SQLite Database', extensions: ['sqlite'] }],
+    properties: ['openFile'],
+  });
+  if (canceled || !filePaths?.length) return { ok: false, cancelled: true };
+  return restoreDatabaseFile(filePaths[0]);
+});
+
 function getAppIconPath() {
   const iconName = 'cf-trading-ent.ico';
   const unpackedIcon = path.join(process.resourcesPath, 'app.asar.unpacked', iconName);
@@ -95,19 +156,191 @@ function getWindowIcon() {
 
 function resolveServerUrl(appDir) {
   const indexPhp = path.join(appDir, 'index.php');
-  const indexHtml = path.join(appDir, 'index.html');
   if (fs.existsSync(indexPhp)) {
     return 'http://127.0.0.1:8000/index.php';
   }
+  const indexHtml = path.join(appDir, 'index.html');
   if (fs.existsSync(indexHtml)) {
     return 'http://127.0.0.1:8000/index.html';
   }
   return 'http://127.0.0.1:8000/';
 }
 
+function getWritableDataDir(isDev) {
+  if (isDev) {
+    return path.join(path.resolve(__dirname, '..'), 'data');
+  }
+  return app.getPath('userData');
+}
+
+function resolveDatabasePath(isDev, appDir, writableDataDir) {
+  const projectDbPath = path.join(appDir, 'data', 'stocktracker.sqlite');
+  const userDbPath = path.join(writableDataDir, 'stocktracker.sqlite');
+
+  if (!fs.existsSync(writableDataDir)) {
+    fs.mkdirSync(writableDataDir, { recursive: true });
+  }
+
+  if (isDev) {
+    if (!fs.existsSync(path.dirname(projectDbPath))) {
+      fs.mkdirSync(path.dirname(projectDbPath), { recursive: true });
+    }
+    return projectDbPath;
+  }
+
+  if (!fs.existsSync(userDbPath)) {
+    const latestBackup = getLatestDatabaseBackup();
+    if (latestBackup) {
+      fs.copyFileSync(latestBackup.path, userDbPath);
+      writeLog({
+        level: 'INFO',
+        category: 'BACKUP',
+        message: `Restored database after reinstall from ${latestBackup.name}`,
+      });
+      return userDbPath;
+    }
+
+    if (fs.existsSync(projectDbPath)) {
+      fs.copyFileSync(projectDbPath, userDbPath);
+      writeLog({ level: 'INFO', category: 'APP', message: 'Initialized new database from bundled template' });
+    }
+    return userDbPath;
+  }
+
+  // Never overwrite an existing live database with the bundled template.
+  return userDbPath;
+}
+
+function buildPhpArgs(isDev) {
+  const phpIni = isDev
+    ? path.join(__dirname, 'php', 'php.ini')
+    : path.join(process.resourcesPath, 'php', 'php.ini');
+  const args = ['-S', '127.0.0.1:8000'];
+  if (fs.existsSync(phpIni)) {
+    args.unshift('-c', phpIni);
+  }
+  return args;
+}
+
+// ─── Database backup & restore ───────────────────────────────────
+function getBackupDirectories() {
+  const dirs = [
+    path.join(app.getPath('documents'), 'C F Trading ENT POS', 'backups'),
+    path.join(app.getPath('userData'), 'backups'),
+  ];
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  }
+  return dirs;
+}
+
+function formatBackupFilename() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `stocktracker-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.sqlite`;
+}
+
+function pruneBackupDirectory(dir) {
+  if (!fs.existsSync(dir)) return;
+  const files = fs.readdirSync(dir)
+    .filter((f) => f.endsWith('.sqlite'))
+    .map((f) => ({ name: f, mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
+    .sort((a, b) => b.mtime - a.mtime);
+  files.slice(MAX_BACKUPS_PER_DIR).forEach((f) => {
+    try {
+      fs.unlinkSync(path.join(dir, f.name));
+    } catch (e) {
+      writeLog({ level: 'WARN', category: 'BACKUP', message: `Failed to prune old backup: ${f.name}` });
+    }
+  });
+}
+
+function createDatabaseBackup(reason = 'manual') {
+  if (!activeDbPath || !fs.existsSync(activeDbPath)) {
+    return { ok: false, error: 'Database not found' };
+  }
+
+  const savedPaths = [];
+  for (const dir of getBackupDirectories()) {
+    const dest = path.join(dir, formatBackupFilename());
+    fs.copyFileSync(activeDbPath, dest);
+    pruneBackupDirectory(dir);
+    savedPaths.push(dest);
+  }
+
+  writeLog({ level: 'INFO', category: 'BACKUP', message: `Database backed up (${reason})` });
+  return { ok: true, paths: savedPaths };
+}
+
+function listDatabaseBackups() {
+  const backups = [];
+  for (const dir of getBackupDirectories()) {
+    if (!fs.existsSync(dir)) continue;
+    for (const file of fs.readdirSync(dir)) {
+      if (!file.endsWith('.sqlite')) continue;
+      const fullPath = path.join(dir, file);
+      const stat = fs.statSync(fullPath);
+      backups.push({
+        path: fullPath,
+        name: file,
+        folder: dir,
+        size: stat.size,
+        modified: stat.mtime.toISOString(),
+      });
+    }
+  }
+  backups.sort((a, b) => new Date(b.modified) - new Date(a.modified));
+  return backups;
+}
+
+function getLatestDatabaseBackup() {
+  const backups = listDatabaseBackups();
+  return backups.length > 0 ? backups[0] : null;
+}
+
+function shouldAutoBackup() {
+  const backups = listDatabaseBackups();
+  if (backups.length === 0) return true;
+  const last = new Date(backups[0].modified).getTime();
+  return (Date.now() - last) > (24 * 60 * 60 * 1000);
+}
+
+function restoreDatabaseFile(sourcePath) {
+  if (!activeDbPath) {
+    return { ok: false, error: 'Database path is not ready' };
+  }
+  if (!sourcePath || !fs.existsSync(sourcePath)) {
+    return { ok: false, error: 'Backup file not found' };
+  }
+
+  createDatabaseBackup('pre-restore');
+  stopPhpServer();
+  fs.copyFileSync(sourcePath, activeDbPath);
+  writeLog({ level: 'INFO', category: 'BACKUP', message: `Database restored from ${path.basename(sourcePath)}` });
+  startPhpServer();
+  return { ok: true };
+}
+
 // Log app start
 writeLog({ level: 'INFO', category: 'APP', message: 'C F Trading ENT application started' });
 // ─────────────────────────────────────────────────────────────────
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    } else if (!isServerStarting) {
+      startPhpServer();
+    }
+  });
+}
 
 // ─── Auto Updater ────────────────────────────────────────────────
 function setupAutoUpdater() {
@@ -239,48 +472,21 @@ function startPhpServer() {
   serverUrl = resolveServerUrl(appDir);
   console.log('Server URL:', serverUrl);
 
-  // DB path: Use the main project database for desktop executable
-  // In development, use the project's data folder
-  // In production (packaged), copy database to a writable location but use project data as source
-  const projectDbPath = path.join(appDir, 'data', 'stocktracker.sqlite');
-  let dbPath;
-  
-  if (isDev) {
-    // Development: use project database directly
-    dbPath = projectDbPath;
-  } else {
-    // Production: copy project database to writable location if it doesn't exist
-    const userDbPath = path.join(app.getPath('userData'), 'stocktracker.sqlite');
-    
-    // Copy project database to user data if user database doesn't exist or is older
-    if (!fs.existsSync(userDbPath) || 
-        (fs.existsSync(projectDbPath) && 
-         fs.statSync(projectDbPath).mtime > fs.statSync(userDbPath).mtime)) {
-      
-      console.log('Copying project database to user data directory...');
-      try {
-        // Ensure user data directory exists
-        const userDataDir = path.dirname(userDbPath);
-        if (!fs.existsSync(userDataDir)) {
-          fs.mkdirSync(userDataDir, { recursive: true });
-        }
-        
-        // Copy database
-        fs.copyFileSync(projectDbPath, userDbPath);
-        console.log('Database copied successfully');
-      } catch (error) {
-        console.error('Failed to copy database:', error);
-        // Fallback to project database if copy fails
-        dbPath = projectDbPath;
-      }
-    }
-    
-    dbPath = userDbPath;
-  }
-  
-  const env = { ...process.env, STOCKTRACKER_DB_PATH: dbPath };
+  const writableDataDir = getWritableDataDir(isDev);
+  const dbPath = resolveDatabasePath(isDev, appDir, writableDataDir);
+  activeDbPath = dbPath;
+  activeWritableDataDir = writableDataDir;
+
+  const env = {
+    ...process.env,
+    STOCKTRACKER_DB_PATH: dbPath,
+    STOCKTRACKER_DATA_DIR: writableDataDir,
+    DESKTOP_APP: '1',
+    DESKTOP_SESSION_TIMEOUT: '28800',
+  };
 
   console.log('Database path:', dbPath);
+  console.log('Writable data dir:', writableDataDir);
 
   // Use bundled PHP - always use bundled PHP for consistency
   let phpExe;
@@ -439,10 +645,10 @@ function startPhpServer() {
       });
     }
 
-    console.log('Starting PHP server with command:', phpExe, '-S', '127.0.0.1:8000');
+    console.log('Starting PHP server with command:', phpExe, ...buildPhpArgs(isDev));
     console.log('Working directory:', appDir);
 
-    phpServer = spawn(phpExe, ['-S', '0.0.0.0:8000'], { 
+    phpServer = spawn(phpExe, buildPhpArgs(isDev), {
       cwd: appDir, 
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -513,6 +719,9 @@ function startPhpServer() {
         createWindow();
       }
       isServerStarting = false;
+      if (activeDbPath && fs.existsSync(activeDbPath) && shouldAutoBackup()) {
+        createDatabaseBackup('startup');
+      }
     }, 10000);
 
   } catch (error) {
@@ -676,6 +885,8 @@ ipcMain.handle('print-receipt', async (event, htmlContent) => {
 });
 
 app.whenReady().then(() => {
+  if (!gotSingleInstanceLock) return;
+
   console.log('Electron app ready, starting PHP server...');
 
   app.setName('C F Trading ENT POS');
@@ -690,6 +901,19 @@ app.whenReady().then(() => {
   setupAutoUpdater();
   
   // Create application menu with refresh option
+  const isPackaged = app.isPackaged;
+  const viewSubmenu = [
+    { role: 'reload' },
+    { role: 'forceReload' },
+    ...(isPackaged ? [] : [{ role: 'toggleDevTools' }]),
+    { type: 'separator' },
+    { role: 'resetZoom' },
+    { role: 'zoomIn' },
+    { role: 'zoomOut' },
+    { type: 'separator' },
+    { role: 'togglefullscreen' }
+  ];
+
   const template = [
     {
       label: 'File',
@@ -725,21 +949,27 @@ app.whenReady().then(() => {
     },
     {
       label: 'View',
-      submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' }
-      ]
+      submenu: viewSubmenu
     },
     {
       label: 'Help',
       submenu: [
+        {
+          label: 'Open Data Folder',
+          click: async () => {
+            const { shell } = require('electron');
+            await shell.openPath(app.getPath('userData'));
+          }
+        },
+        {
+          label: 'Open Backup Folder',
+          click: async () => {
+            const folder = path.join(app.getPath('documents'), 'C F Trading ENT POS', 'backups');
+            if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
+            await require('electron').shell.openPath(folder);
+          }
+        },
+        { type: 'separator' },
         {
           label: 'About C F Trading ENT POS',
           click: () => {
@@ -749,9 +979,10 @@ app.whenReady().then(() => {
               title: 'About C F Trading ENT POS',
               message: 'C F Trading ENT POS',
               detail: 
-                'Version: 1.0.0\n\n' +
-                'POS & Inventory System\n\n' +
-                'C F Trading ENT POS helps businesses track stock, monitor sales, and prevent losses from expired products — all in one offline desktop solution.\n\n' +
+                `Version: ${app.getVersion()}\n\n` +
+                'Offline desktop POS & inventory system.\n\n' +
+                'Your business data is stored locally in:\n' +
+                `${app.getPath('userData')}\n\n` +
                 'Track Stock. Prevent Loss. Grow Profit.\n\n' +
                 '© 2026 C F Trading ENT. All rights reserved.',
               buttons: ['OK']
@@ -784,6 +1015,13 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    if (activeDbPath && fs.existsSync(activeDbPath)) {
+      try {
+        createDatabaseBackup('shutdown');
+      } catch (e) {
+        writeLog({ level: 'WARN', category: 'BACKUP', message: `Shutdown backup failed: ${e.message}` });
+      }
+    }
     // Stop power save blocker
     if (powerSaveBlockerId !== null && powerSaveBlocker.isStarted(powerSaveBlockerId)) {
       powerSaveBlocker.stop(powerSaveBlockerId);

@@ -121,6 +121,13 @@ function ensure_sqlite_initialized(PDO $pdo, string $dbFile): void {
     } catch (Exception $e) {
         // Column already exists, ignore
     }
+
+    // Force password change on first login for seeded/default accounts
+    try {
+        $pdo->exec('ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0');
+    } catch (Exception $e) {
+        // Column already exists, ignore
+    }
     
     // Stock batches for expiry tracking
     $pdo->exec('CREATE TABLE IF NOT EXISTS stock_batches (
@@ -383,7 +390,7 @@ function seed_admin_if_missing(PDO $pdo): void {
         $username = 'admin';
         $passwordHash = password_hash('Admin@123', PASSWORD_DEFAULT);
         $role = 'admin';
-        $ins = $pdo->prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)');
+        $ins = $pdo->prepare('INSERT INTO users (username, password_hash, role, must_change_password) VALUES (?, ?, ?, 1)');
         $ins->execute([$username, $passwordHash, $role]);
     }
 }

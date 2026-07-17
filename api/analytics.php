@@ -1,14 +1,10 @@
 <?php
 declare(strict_types=1);
-session_start();
 require __DIR__ . '/../src/db.php';
+require_once __DIR__ . '/../src/auth.php';
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['error' => 'forbidden']);
-    exit;
-}
+require_admin();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';

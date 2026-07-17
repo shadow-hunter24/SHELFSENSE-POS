@@ -266,9 +266,22 @@ async function doLogin(){
   errEl.textContent = '';
   if(!username||!password){ errEl.textContent='Enter username and password'; return; }
   try {
-    const res = await fetch('api/login.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const res = await fetch('api/login.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
     const d = await res.json();
-    if(!res.ok){ errEl.textContent = d.error||'Login failed'; return; }
+    if(!res.ok){
+      if(d.error === 'too_many_attempts'){
+        const mins = Math.ceil((d.retry_after || 900) / 60);
+        errEl.textContent = `Too many attempts. Try again in about ${mins} minute(s).`;
+      } else {
+        errEl.textContent = d.message || d.error || 'Login failed';
+      }
+      return;
+    }
+    if(d.must_change_password){
+      errEl.textContent = 'Please change your password in the main POS app before using Owner Dashboard.';
+      await fetch('api/logout.php',{method:'POST',credentials:'same-origin'});
+      return;
+    }
     if(d.role !== 'admin'){ errEl.textContent = 'Admin access required'; await fetch('api/logout.php',{method:'POST'}); return; }
     document.getElementById('pin-screen').style.display='none';
     document.getElementById('app').style.display='block';

@@ -4,6 +4,7 @@ desktop/node_modules/
 
 # Database (don't push live data)
 data/stocktracker.sqlite
+data/login_attempts.json
 
 # OS files
 .DS_Store

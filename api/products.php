@@ -1,18 +1,12 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/../src/db.php';
+require_once __DIR__ . '/../src/auth.php';
 header('Content-Type: application/json');
-session_start();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-if (!isset($_SESSION['user_id'])) { http_response_code(401); echo json_encode(['error' => 'unauthenticated']); exit; }
-
-function json_input(): array {
-    $raw = file_get_contents('php://input');
-    $data = json_decode($raw, true);
-    return is_array($data) ? $data : [];
-}
+require_authenticated();
 
 try {
     if ($method === 'GET') {
@@ -115,6 +109,11 @@ try {
     }
 
     if ($method === 'POST') {
+        if (!is_admin()) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Only administrators can create products']);
+            exit;
+        }
         $data = json_input();
         $sku = trim((string)($data['sku'] ?? ''));
         $name = trim((string)($data['name'] ?? ''));
@@ -175,6 +174,11 @@ try {
     }
 
     if ($method === 'PUT') {
+        if (!is_admin()) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Only administrators can update products']);
+            exit;
+        }
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) { 
             http_response_code(400); 

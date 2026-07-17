@@ -8,7 +8,7 @@ echo Starting PHP Development Server...
 echo.
 echo IMPORTANT:
 echo   - Server URL: http://localhost:8000
-echo   - Login: admin / Admin@123
+echo   - Default login: admin (change password on first sign-in)
 echo   - Press Ctrl+C to stop the server
 echo.
 echo ========================================

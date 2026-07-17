@@ -1,23 +1,15 @@
 <?php
 declare(strict_types=1);
-session_start();
+
 require __DIR__ . '/../src/db.php';
+require_once __DIR__ . '/../src/auth.php';
+
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['error' => 'forbidden']);
-    exit;
-}
+require_admin();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-
-function json_input(): array {
-    $raw = file_get_contents('php://input');
-    $data = json_decode($raw, true);
-    return is_array($data) ? $data : [];
-}
 
 try {
     if ($method === 'GET') {
@@ -43,6 +35,12 @@ try {
         if ($username === '' || $password === '' || !in_array($role, ['admin','user'], true)) {
             http_response_code(400);
             echo json_encode(['error' => 'invalid input']);
+            exit;
+        }
+        $strengthError = validate_password_strength($password);
+        if ($strengthError !== null) {
+            http_response_code(400);
+            echo json_encode(['error' => $strengthError]);
             exit;
         }
         $hash = password_hash($password, PASSWORD_DEFAULT);
@@ -83,7 +81,17 @@ try {
         
         if (isset($data['role']) && in_array($data['role'], ['admin','user'], true)) { $fields[] = 'role = ?'; $params[] = (string)$data['role']; }
         if (isset($data['status']) && in_array($data['status'], ['active','inactive'], true)) { $fields[] = 'status = ?'; $params[] = (string)$data['status']; }
-        if (isset($data['password']) && $data['password'] !== '') { $fields[] = 'password_hash = ?'; $params[] = password_hash((string)$data['password'], PASSWORD_DEFAULT); }
+        if (isset($data['password']) && $data['password'] !== '') {
+            $strengthError = validate_password_strength((string)$data['password']);
+            if ($strengthError !== null) {
+                http_response_code(400);
+                echo json_encode(['error' => $strengthError]);
+                exit;
+            }
+            $fields[] = 'password_hash = ?';
+            $params[] = password_hash((string)$data['password'], PASSWORD_DEFAULT);
+            $fields[] = 'must_change_password = 0';
+        }
         if (empty($fields)) { echo json_encode(['updated' => 0]); exit; }
         $params[] = $id;
         $stmt = $pdo->prepare('UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?');
@@ -107,5 +115,5 @@ try {
 } catch (Throwable $e) {
     error_log("Users API Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
     http_response_code(500);
-    echo json_encode(['error' => 'Unexpected server error', 'debug' => $e->getMessage()]);
+    echo json_encode(['error' => 'Unexpected server error']);
 }

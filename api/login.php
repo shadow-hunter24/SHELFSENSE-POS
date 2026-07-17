@@ -1,19 +1,27 @@
 <?php
 declare(strict_types=1);
-session_start();
+
 require __DIR__ . '/../src/db.php';
+require_once __DIR__ . '/../src/auth.php';
+require_once __DIR__ . '/../src/rate_limit.php';
+
 header('Content-Type: application/json');
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-function json_input(): array {
-    $raw = file_get_contents('php://input');
-    $data = json_decode($raw, true);
-    return is_array($data) ? $data : [];
-}
-
 if ($method === 'POST') {
+    $lockout = check_login_rate_limit();
+    if ($lockout !== null) {
+        http_response_code(429);
+        echo json_encode([
+            'error' => 'too_many_attempts',
+            'message' => 'Too many failed login attempts. Please try again later.',
+            'retry_after' => $lockout['retry_after'],
+        ]);
+        exit;
+    }
+
     $data = json_input();
     $username = trim((string)($data['username'] ?? ''));
     $password = (string)($data['password'] ?? '');
@@ -22,40 +30,51 @@ if ($method === 'POST') {
         echo json_encode(['error' => 'username and password required']);
         exit;
     }
-    
-    // Try to get user with status column, fallback if column doesn't exist
+
     try {
-        $stmt = $pdo->prepare('SELECT id, username, password_hash, role, status FROM users WHERE username = ?');
+        $stmt = $pdo->prepare('SELECT id, username, password_hash, role, status, COALESCE(must_change_password, 0) AS must_change_password FROM users WHERE username = ?');
         $stmt->execute([$username]);
         $u = $stmt->fetch();
     } catch (PDOException $e) {
-        // Fallback if status column doesn't exist
-        error_log("Status column not found, using fallback query: " . $e->getMessage());
+        error_log('Login query fallback: ' . $e->getMessage());
         $stmt = $pdo->prepare('SELECT id, username, password_hash, role FROM users WHERE username = ?');
         $stmt->execute([$username]);
         $u = $stmt->fetch();
         if ($u) {
-            $u['status'] = 'active'; // Default to active for backward compatibility
+            $u['status'] = 'active';
+            $u['must_change_password'] = 0;
         }
     }
-    
+
     if (!$u || !password_verify($password, $u['password_hash'])) {
+        record_login_failure();
         http_response_code(401);
         echo json_encode(['error' => 'invalid credentials']);
         exit;
     }
-    
-    // Check if user account is active
+
     if (($u['status'] ?? 'active') !== 'active') {
         http_response_code(403);
-        echo json_encode(['error' => 'account_deactivated', 'message' => 'Your account has been deactivated. Please contact the administrator.']);
+        echo json_encode([
+            'error' => 'account_deactivated',
+            'message' => 'Your account has been deactivated. Please contact the administrator.',
+        ]);
         exit;
     }
-    
+
+    clear_login_attempts();
+    start_secure_session();
+    session_regenerate_id(true);
     $_SESSION['user_id'] = (int)$u['id'];
     $_SESSION['username'] = $u['username'];
     $_SESSION['role'] = $u['role'];
-    echo json_encode(['ok' => true, 'role' => $u['role']]);
+    $_SESSION['last_activity'] = time();
+
+    echo json_encode([
+        'ok' => true,
+        'role' => $u['role'],
+        'must_change_password' => (int)($u['must_change_password'] ?? 0) === 1,
+    ]);
     exit;
 }
 

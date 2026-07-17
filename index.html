@@ -84,6 +84,13 @@
       min-height: 100vh;
     }
 
+    #dashboard-screen > .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+      flex-shrink: 0;
+    }
+
     /* Dashboard Styles */
     .navbar-brand {
       font-weight: 700;
@@ -91,9 +98,30 @@
     }
 
     .sidebar {
-      min-height: calc(100vh - 56px);
       background: #343a40;
       padding-top: 1rem;
+      padding-bottom: 1rem;
+    }
+
+    @media (min-width: 992px) {
+      .sidebar {
+        position: sticky;
+        top: 56px;
+        align-self: flex-start;
+        height: calc(100vh - 56px);
+        max-height: calc(100vh - 56px);
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      .sidebar::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .sidebar::-webkit-scrollbar-thumb {
+        background: #6c757d;
+        border-radius: 3px;
+      }
     }
 
     .sidebar .nav-link {
@@ -339,9 +367,77 @@
         overflow: visible !important;
       }
     }
+
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: #1e3c72;
+      color: #fff;
+      padding: 8px 16px;
+      z-index: 10000;
+      text-decoration: none;
+      border-radius: 0 0 4px 0;
+    }
+
+    .skip-link:focus {
+      top: 0;
+    }
+
+    .toast-container-fixed {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 11000;
+      min-width: 280px;
+    }
+
+    .sidebar-toggle-btn {
+      display: none;
+    }
+
+    @media (max-width: 991.98px) {
+      .sidebar-toggle-btn {
+        display: inline-flex;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .sidebar.sidebar-open {
+        display: block;
+        position: static;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+        width: 100%;
+        margin-bottom: 1rem;
+      }
+
+      .main-content {
+        padding: 1rem;
+      }
+    }
+
+    .status-icon-ok::before { content: "✓ "; color: #198754; }
+    .status-icon-warn::before { content: "! "; color: #fd7e14; }
+    .status-icon-danger::before { content: "✕ "; color: #dc3545; }
+
+    body.desktop-app .desktop-only {
+      display: inline-flex !important;
+    }
+
+    .desktop-status-badge {
+      font-size: 11px;
+      letter-spacing: 0.3px;
+    }
   </style>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="aria-live-status" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+  <div class="toast-container-fixed" id="toast-container" aria-live="polite" aria-atomic="true"></div>
   <!-- Login Screen -->
   <div id="login-screen" class="login-body">
     <div class="login-card">
@@ -357,6 +453,10 @@
           </div>
         </div>
         <p class="text-muted mb-1" style="font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">Track Stock. Prevent Loss. Grow Profit.</p>
+        <p id="desktop-mode-badge" class="desktop-only d-none badge bg-success desktop-status-badge mb-2">
+          <i class="bi bi-pc-display"></i> Desktop App — Works Offline
+          <span id="desktop-version" class="ms-1 opacity-75"></span>
+        </p>
         <p class="text-muted small">Sign in to your account</p>
       </div>
       <form id="form-login">
@@ -372,7 +472,12 @@
             <i class="bi bi-lock"></i>
             Password
           </label>
-          <input id="login-password" type="password" class="form-control" name="password" placeholder="Enter your password" autocomplete="current-password" required>
+          <div class="input-group">
+            <input id="login-password" type="password" class="form-control" name="password" placeholder="Enter your password" autocomplete="current-password" required>
+            <button class="btn btn-outline-secondary" type="button" id="toggle-login-password" aria-label="Show password" title="Show password">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
         </div>
         <button class="btn btn-primary w-100" type="submit">
           <i class="bi bi-box-arrow-in-right"></i>
@@ -384,10 +489,13 @@
   </div>
 
   <!-- Main Dashboard -->
-  <div id="dashboard-screen" class="hidden">
+  <div id="dashboard-screen" class="dashboard-screen hidden">
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
       <div class="container-fluid">
+        <button class="btn btn-outline-light btn-sm sidebar-toggle-btn me-2" type="button" id="sidebar-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+          <i class="bi bi-list"></i>
+        </button>
         <a class="navbar-brand d-flex align-items-center" href="#">
           <img src="assets/cf-trading-ent-logo.jpeg" alt="C F Trading ENT POS" 
                style="height: 36px; width: auto; background: white; padding: 3px; border-radius: 4px; margin-right: 8px;" 
@@ -402,7 +510,7 @@
     <div class="container-fluid">
       <div class="row">
         <!-- Sidebar -->
-        <div class="col-md-3 col-lg-2 sidebar">
+        <div class="col-md-3 col-lg-2 sidebar" id="app-sidebar">
           <nav class="nav flex-column">
             <a class="nav-link active" href="#" data-section="dashboard">
               <i class="bi bi-speedometer2"></i>
@@ -439,9 +547,9 @@
               <span id="predictions-badge" class="badge bg-danger ms-1" style="display:none;">0</span>
             </a>
             <a class="nav-link admin-only hidden" href="#" data-section="antitheft">
-              <i class="bi bi-shield-exclamation"></i>
-              Anti-Theft Monitor
-              <span id="antitheft-badge" class="badge bg-danger ms-1" style="display:none;">!</span>
+              <i class="bi bi-clipboard-data"></i>
+              Inventory Audit
+              <span id="antitheft-badge" class="badge bg-warning text-dark ms-1" style="display:none;" aria-label="Variance items need review">!</span>
             </a>
             <a class="nav-link admin-only hidden" href="#" data-section="users">
               <i class="bi bi-people"></i>
@@ -464,7 +572,7 @@
         </div>
 
         <!-- Main Content -->
-        <div class="col-md-9 col-lg-10 main-content">
+        <div class="col-md-9 col-lg-10 main-content" id="main-content">
           <!-- Dashboard Section -->
           <div id="section-dashboard" class="content-section">
             <!-- Welcome Banner -->
@@ -1420,7 +1528,11 @@
                         </div>
                         <div class="col-md-8">
                           <label for="customer-name" class="form-label">Customer's Name <span class="text-danger">*</span></label>
-                          <input id="customer-name" type="text" class="form-control" name="customer_name" placeholder="Enter customer name" autocomplete="name" required>
+                          <div class="position-relative">
+                            <input id="customer-name" type="text" class="form-control" name="customer_name" placeholder="Type name or phone to find saved customer..." autocomplete="off" required>
+                            <div id="customer-suggestions" class="position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-sm" style="z-index: 1000; max-height: 220px; overflow-y: auto; display: none;"></div>
+                          </div>
+                          <small class="text-muted">Previously saved customers will appear as you type</small>
                         </div>
                         <div class="col-md-4">
                           <label for="customer-phone" class="form-label">Phone <span class="text-danger">*</span></label>
@@ -2504,6 +2616,50 @@
               </div>
             </div>
 
+            <!-- Data Backup (Desktop App Only) -->
+            <div class="card mb-4 d-none" id="desktop-backup-card">
+              <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-hdd-network"></i> Data Backup &amp; Restore</h5>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-info small">
+                  <i class="bi bi-info-circle"></i>
+                  Your business data is stored locally. Backups are saved automatically to your
+                  <strong>Documents\C F Trading ENT POS\backups</strong> folder so records survive app reinstalls.
+                </div>
+                <p class="small text-muted mb-3" id="backup-status-text">Loading backup status...</p>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                  <button type="button" class="btn btn-primary btn-sm" onclick="backupDatabaseNow()">
+                    <i class="bi bi-cloud-arrow-up"></i> Backup Now
+                  </button>
+                  <button type="button" class="btn btn-outline-primary btn-sm" onclick="exportDatabaseBackup()">
+                    <i class="bi bi-box-arrow-up"></i> Export Copy...
+                  </button>
+                  <button type="button" class="btn btn-outline-warning btn-sm" onclick="importDatabaseBackup()">
+                    <i class="bi bi-box-arrow-in"></i> Import Backup...
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openBackupFolder()">
+                    <i class="bi bi-folder2-open"></i> Open Backup Folder
+                  </button>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Backup File</th>
+                        <th>Date</th>
+                        <th>Size</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbl-database-backups">
+                      <tr><td colspan="4" class="text-center text-muted">No backups listed yet</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
             <!-- Tailscale Remote Access Guide -->
             <div class="card">
               <div class="card-header d-flex justify-content-between align-items-center">
@@ -2645,10 +2801,10 @@
             </div>
           </div>
 
-          <!-- Anti-Theft Monitor Section (Admin Only) -->
+          <!-- Inventory Audit Section (Admin Only) -->
           <div id="section-antitheft" class="content-section hidden">
             <div class="d-flex justify-content-between align-items-center mb-4">
-              <h2><i class="bi bi-shield-exclamation text-danger"></i> Anti-Theft Monitor</h2>
+              <h2><i class="bi bi-clipboard-data text-primary"></i> Inventory Audit</h2>
               <div class="d-flex align-items-center gap-2">
                 <select class="form-select form-select-sm" id="antitheft-period" onchange="loadAntiTheft()" style="width:auto;">
                   <option value="7">Last 7 days</option>
@@ -2691,7 +2847,7 @@
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
                       <h3 id="at-suspicious-count" class="mb-0">0</h3>
-                      <p class="mb-0">Suspicious Activities</p>
+                      <p class="mb-0">Variance Items to Review</p>
                     </div>
                     <i class="bi bi-eye display-4 opacity-50"></i>
                   </div>
@@ -2710,6 +2866,11 @@
               </div>
             </div>
 
+            <div class="alert alert-info small mb-3" role="note">
+              <i class="bi bi-info-circle"></i>
+              Variance results may reflect data entry errors, unit conversions, or timing differences — not proof of wrongdoing. Review before taking action.
+            </div>
+
             <!-- Tabs -->
             <ul class="nav nav-tabs mb-3" id="antitheft-tabs">
               <li class="nav-item">
@@ -2719,7 +2880,7 @@
               </li>
               <li class="nav-item">
                 <button class="nav-link" onclick="showAntiTheftTab('suspicious')">
-                  <i class="bi bi-exclamation-triangle text-warning"></i> Suspicious Activity
+                  <i class="bi bi-journal-text text-warning"></i> Manual Adjustments
                 </button>
               </li>
               <li class="nav-item">
@@ -2779,13 +2940,13 @@
               </div>
             </div>
 
-            <!-- Suspicious Activity Tab -->
+            <!-- Manual Adjustments Tab -->
             <div id="at-tab-suspicious" style="display:none;">
               <div class="row">
                 <div class="col-md-6">
                   <div class="card mb-3">
-                    <div class="card-header bg-danger text-white">
-                      <h6 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Manual Stock Deductions & Large Adjustments</h6>
+                    <div class="card-header bg-secondary text-white">
+                      <h6 class="mb-0"><i class="bi bi-journal-text"></i> Manual Stock Deductions &amp; Large Adjustments</h6>
                     </div>
                     <div class="card-body p-0">
                       <div class="table-responsive">
@@ -2917,7 +3078,7 @@
 
             <!-- Summary Cards -->
             <div class="row mb-4">
-              <div class="col-md-4">
+              <div class="col-md-4 admin-only hidden">
                 <div class="stat-card danger">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -2928,7 +3089,7 @@
                   </div>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 admin-only hidden">
                 <div class="stat-card warning">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -2954,20 +3115,20 @@
 
             <!-- Tabs -->
             <ul class="nav nav-tabs mb-3" id="credit-tabs">
-              <li class="nav-item">
+              <li class="nav-item admin-only hidden">
                 <button class="nav-link active" onclick="showCreditTab('debtors')">
                   <i class="bi bi-exclamation-circle text-danger"></i> Who Owes
                 </button>
               </li>
               <li class="nav-item">
-                <button class="nav-link" onclick="showCreditTab('customers')">
+                <button class="nav-link" id="credit-tab-customers-btn" onclick="showCreditTab('customers')">
                   <i class="bi bi-people"></i> All Customers
                 </button>
               </li>
             </ul>
 
             <!-- Debtors Tab -->
-            <div id="credit-tab-debtors">
+            <div id="credit-tab-debtors" class="admin-only hidden">
               <div class="card">
                 <div class="card-header">
                   <h5 class="mb-0"><i class="bi bi-exclamation-circle text-danger"></i> Outstanding Debts</h5>
@@ -3208,6 +3369,11 @@
               </div>
             </div>
 
+            <div class="alert alert-secondary small mb-3" role="note">
+              <i class="bi bi-shield-check"></i>
+              <strong>Privacy notice:</strong> Sign-in, navigation, and business actions (sales, stock, products) may be logged for security and audit purposes. Field-level keystroke tracking is not recorded.
+            </div>
+
             <!-- Filters -->
             <div class="card mb-3">
               <div class="card-body py-2">
@@ -3284,6 +3450,37 @@
     </footer>
   </div>
 
+  <!-- First-login / forced password change -->
+  <div class="modal fade" id="changePasswordModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="changePasswordModalLabel">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="changePasswordModalLabel"><i class="bi bi-shield-lock"></i> Change Your Password</h5>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">For security, you must set a new password before continuing.</p>
+          <div class="mb-3">
+            <label for="cp-current" class="form-label">Current password</label>
+            <input type="password" class="form-control" id="cp-current" autocomplete="current-password">
+          </div>
+          <div class="mb-3">
+            <label for="cp-new" class="form-label">New password</label>
+            <input type="password" class="form-control" id="cp-new" autocomplete="new-password" minlength="8">
+            <div class="form-text">At least 8 characters.</div>
+          </div>
+          <div class="mb-3">
+            <label for="cp-confirm" class="form-label">Confirm new password</label>
+            <input type="password" class="form-control" id="cp-confirm" autocomplete="new-password" minlength="8">
+          </div>
+          <div id="cp-status"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="submitPasswordChange()">Save New Password</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap JS -->
   <script src="assets/js/bootstrap.bundle.min.js"></script>
   
@@ -3295,7 +3492,7 @@
     /* eslint-disable */
     /* stylelint-disable */
 
-    // ─── Activity Logger ─────────────────────────────────────────────
+    // ─── Activity Logger (business actions only; no field-level surveillance) ─
     const AppLogger = {
       log(category, message, level = 'INFO') {
         if (window.electronAPI && window.electronAPI.writeLog) {
@@ -3309,35 +3506,13 @@
       action:(cat, msg) => AppLogger.log(cat, msg, 'ACTION')
     };
 
-    // Track button clicks
-    document.addEventListener('click', function(e) {
-      const el = e.target.closest('button, a[href], [onclick], .nav-link, .page-link');
-      if (!el) return;
-      const label = (el.textContent || el.title || el.id || el.className).trim().replace(/\s+/g, ' ').substring(0, 80);
-      AppLogger.action('CLICK', `${el.tagName} clicked: "${label}"`);
-    }, true);
-
-    // Track input field focus
-    document.addEventListener('focusin', function(e) {
-      const el = e.target;
-      if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return;
-      const name = el.name || el.id || el.placeholder || el.tagName;
-      AppLogger.info('FOCUS', `Field focused: "${name}" (type: ${el.type || el.tagName})`);
-    }, true);
-
-    // Track form submissions
+    // Track form submissions (not individual field focus or every click)
     document.addEventListener('submit', function(e) {
       const form = e.target;
       const name = form.id || form.name || 'unknown form';
       AppLogger.action('FORM', `Form submitted: "${name}"`);
     }, true);
 
-    // Track section navigation
-    function logNavigation(section) {
-      AppLogger.action('NAV', `Navigated to section: "${section}"`);
-    }
-
-    // Track modal open/close
     document.addEventListener('show.bs.modal', function(e) {
       const id = e.target.id || 'unknown modal';
       AppLogger.action('MODAL', `Modal opened: "${id}"`);
@@ -3347,18 +3522,13 @@
       const id = e.target.id || 'unknown modal';
       AppLogger.info('MODAL', `Modal closed: "${id}"`);
     }, true);
-
-    // Track select/dropdown changes
-    document.addEventListener('change', function(e) {
-      const el = e.target;
-      if (el.tagName !== 'SELECT') return;
-      const name = el.name || el.id || 'unknown';
-      AppLogger.action('SELECT', `Dropdown changed: "${name}" → "${el.options[el.selectedIndex]?.text}"`);
-    }, true);
     // ─────────────────────────────────────────────────────────────────
 
     // Global variables
     let currentUser = null;
+    let sessionTimeoutMs = 30 * 60 * 1000;
+    let idleTimer = null;
+    let isDesktopApp = !!(window.electronAPI && window.electronAPI.isDesktop);
     let receiptItems = [];
     let products = [];
     let batches = []; // For expiry tracking
@@ -3444,6 +3614,32 @@
       }
     }
 
+    function announceStatus(message) {
+      const live = document.getElementById('aria-live-status');
+      if (live) live.textContent = message;
+    }
+
+    function showToast(title, message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const typeClass = { success: 'text-bg-success', danger: 'text-bg-danger', warning: 'text-bg-warning', info: 'text-bg-primary' }[type] || 'text-bg-primary';
+      const toastEl = document.createElement('div');
+      toastEl.className = `toast align-items-center ${typeClass} border-0 show mb-2`;
+      toastEl.setAttribute('role', 'alert');
+      toastEl.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body"><strong>${title}</strong>${message ? ': ' + message : ''}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>`;
+      container.appendChild(toastEl);
+      announceStatus(`${title}. ${message || ''}`);
+      setTimeout(() => toastEl.remove(), 5000);
+    }
+
+    function notifyUser(message, type = 'info', title = 'Notice') {
+      showToast(title, message, type);
+    }
+
     // Utility functions
     function showMessage(elementId, message, type = 'info') {
       const element = document.getElementById(elementId);
@@ -3470,6 +3666,7 @@
     async function apiCall(url, options = {}) {
       try {
         const response = await fetch(url, {
+          credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json',
             ...options.headers
@@ -3478,12 +3675,18 @@
         });
         
         if (!response.ok) {
-          const error = await response.json();
+          let error = {};
+          try { error = await response.json(); } catch (_) { error = {}; }
           console.error('API Error response:', error);
-          // Create a custom error with the full error object
+          if (response.status === 401 && (error.reason === 'session_expired' || error.error === 'unauthenticated')) {
+            currentUser = null;
+            showLoginScreen();
+            showMessage('login-status', 'Your session has expired. Please sign in again.', 'warning');
+          }
           const err = new Error(error.message || error.error || 'Request failed');
           err.code = error.error;
           err.details = error;
+          err.status = response.status;
           throw err;
         }
         
@@ -3504,17 +3707,109 @@
         });
         
         if (data.ok) {
+          if (data.must_change_password) {
+            currentUser = { username, role: data.role, must_change_password: true };
+            showLoginScreen();
+            showChangePasswordModal(true);
+            return true;
+          }
           await checkAuth();
           return true;
         }
         return false;
       } catch (error) {
         console.error('Login error:', error);
-        // Check if account is deactivated
         if (error.code === 'account_deactivated') {
           throw new Error('Your account has been deactivated. Please contact the administrator.');
         }
+        if (error.code === 'too_many_attempts') {
+          const mins = Math.ceil((error.details?.retry_after || 900) / 60);
+          throw new Error(`Too many failed attempts. Try again in about ${mins} minute(s).`);
+        }
         throw error;
+      }
+    }
+
+    function formatIdleTimeoutLabel() {
+      const mins = Math.round(sessionTimeoutMs / 60000);
+      if (mins >= 60) {
+        const hours = Math.floor(mins / 60);
+        const rem = mins % 60;
+        return rem ? `${hours}h ${rem}m` : `${hours} hour${hours > 1 ? 's' : ''}`;
+      }
+      return `${mins} minute${mins === 1 ? '' : 's'}`;
+    }
+
+    function resetIdleTimer() {
+      if (idleTimer) clearTimeout(idleTimer);
+      if (!currentUser || currentUser.must_change_password) return;
+      idleTimer = setTimeout(async () => {
+        notifyUser(`You were signed out after ${formatIdleTimeoutLabel()} of inactivity.`, 'warning', 'Session ended');
+        await logout();
+      }, sessionTimeoutMs);
+    }
+
+    async function initializeDesktopApp() {
+      if (!window.electronAPI?.isDesktop) return;
+      isDesktopApp = true;
+      document.body.classList.add('desktop-app');
+      const badge = document.getElementById('desktop-mode-badge');
+      if (badge) badge.classList.remove('d-none');
+      try {
+        const info = await window.electronAPI.getAppInfo();
+        if (info?.version) {
+          const verEl = document.getElementById('desktop-version');
+          if (verEl) verEl.textContent = `v${info.version}`;
+        }
+      } catch (e) {
+        console.warn('Could not load desktop app info:', e);
+      }
+    }
+
+    function bindIdleTracking() {
+      ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(evt => {
+        document.addEventListener(evt, resetIdleTimer, { passive: true });
+      });
+    }
+
+    function showChangePasswordModal(forced = false) {
+      document.getElementById('cp-current').value = '';
+      document.getElementById('cp-new').value = '';
+      document.getElementById('cp-confirm').value = '';
+      document.getElementById('cp-status').innerHTML = '';
+      const modal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+      modal.show();
+      if (forced) {
+        document.getElementById('changePasswordModalLabel').textContent = 'Set a New Password';
+      }
+    }
+
+    async function submitPasswordChange() {
+      const current = document.getElementById('cp-current').value;
+      const newPass = document.getElementById('cp-new').value;
+      const confirm = document.getElementById('cp-confirm').value;
+      if (!current || !newPass || !confirm) {
+        showMessage('cp-status', 'Please complete all password fields.', 'danger');
+        return;
+      }
+      if (newPass.length < 8) {
+        showMessage('cp-status', 'New password must be at least 8 characters.', 'danger');
+        return;
+      }
+      if (newPass !== confirm) {
+        showMessage('cp-status', 'New passwords do not match.', 'danger');
+        return;
+      }
+      try {
+        await apiCall('api/change-password.php', {
+          method: 'POST',
+          body: JSON.stringify({ current_password: current, new_password: newPass })
+        });
+        bootstrap.Modal.getInstance(document.getElementById('changePasswordModal'))?.hide();
+        notifyUser('Password updated successfully. Please sign in again.', 'success', 'Password changed');
+        await logout();
+      } catch (error) {
+        showMessage('cp-status', error.message || 'Could not change password.', 'danger');
       }
     }
 
@@ -3530,12 +3825,25 @@
         const data = await apiCall('api/me.php');
         if (data.authenticated) {
           currentUser = data;
+          if (data.must_change_password) {
+            showLoginScreen();
+            showChangePasswordModal(true);
+            return false;
+          }
           AppLogger.action('AUTH', `User logged in: "${data.username}" (role: ${data.role})`);
+          if (data.session_timeout_seconds) {
+            sessionTimeoutMs = data.session_timeout_seconds * 1000;
+          }
           showDashboard();
+          resetIdleTimer();
           return true;
         } else if (data.reason === 'account_deactivated') {
           showLoginScreen();
           showMessage('login-status', 'Your account has been deactivated. Please contact the administrator.', 'danger');
+          return false;
+        } else if (data.reason === 'session_expired') {
+          showLoginScreen();
+          showMessage('login-status', 'Your session has expired. Please sign in again.', 'warning');
           return false;
         }
       } catch (error) {
@@ -3585,6 +3893,7 @@
       
       // Load dashboard data
       loadDashboard();
+      resetIdleTimer();
     }
 
     // Navigation
@@ -3655,6 +3964,7 @@
           break;
         case 'settings':
           loadCompanySettings();
+          loadBackupStatus();
           break;
         case 'logs':
           loadLogs();
@@ -4447,14 +4757,8 @@
         });
         loadStock();
       } catch (error) {
-        alert('Failed to update stock: ' + error.message);
+        notifyUser(error.message, 'danger', 'Stock update failed');
       }
-    }
-    
-    // Toast notification helper
-    function showToast(title, message, type = 'info') {
-      // Simple alert for now - can be enhanced with Bootstrap toast
-      // Silently log for debugging if needed
     }
 
     // View stock movement history
@@ -5264,6 +5568,142 @@
     }
 
     // Receipt functions
+    let receiptCustomers = [];
+
+    async function loadReceiptCustomers() {
+      try {
+        const data = await apiCall('api/customers.php');
+        receiptCustomers = data.items || [];
+      } catch (error) {
+        console.error('Failed to load customers for receipt:', error);
+        receiptCustomers = [];
+      }
+    }
+
+    function hideCustomerSuggestions() {
+      const el = document.getElementById('customer-suggestions');
+      if (el) el.style.display = 'none';
+    }
+
+    function fillCustomerFields(customer) {
+      document.getElementById('customer-name').value = customer.name || '';
+      document.getElementById('customer-phone').value = customer.phone || '';
+      document.getElementById('customer-address').value = customer.address || '';
+      hideCustomerSuggestions();
+    }
+
+    function initializeCustomerSearch() {
+      let selectedIndex = -1;
+      let filteredCustomers = [];
+
+      const nameInput = document.getElementById('customer-name');
+      const phoneInput = document.getElementById('customer-phone');
+      const suggestionsDiv = document.getElementById('customer-suggestions');
+      if (!nameInput || !suggestionsDiv) return;
+
+      function renderSuggestions(matches) {
+        filteredCustomers = matches;
+        selectedIndex = -1;
+        if (matches.length === 0) {
+          suggestionsDiv.style.display = 'none';
+          return;
+        }
+        suggestionsDiv.innerHTML = matches.map((c, index) => `
+          <div class="suggestion-item p-2 border-bottom customer-suggestion-item" style="cursor: pointer;" data-index="${index}">
+            <strong>${c.name}</strong>
+            ${c.phone ? `<small class="text-muted ms-1">${c.phone}</small>` : ''}
+            ${c.address ? `<br><small class="text-muted">${c.address}</small>` : ''}
+          </div>
+        `).join('');
+        suggestionsDiv.style.display = 'block';
+
+        suggestionsDiv.querySelectorAll('.customer-suggestion-item').forEach((item, index) => {
+          item.addEventListener('mouseenter', () => {
+            selectedIndex = index;
+            highlightCustomerSuggestion();
+          });
+          item.addEventListener('click', () => {
+            fillCustomerFields(filteredCustomers[index]);
+          });
+        });
+      }
+
+      function highlightCustomerSuggestion() {
+        suggestionsDiv.querySelectorAll('.customer-suggestion-item').forEach((el, i) => {
+          if (i === selectedIndex) {
+            el.style.backgroundColor = '#0d6efd';
+            el.style.color = 'white';
+            el.querySelectorAll('small').forEach(s => s.style.color = '#e9ecef');
+          } else {
+            el.style.backgroundColor = 'white';
+            el.style.color = 'black';
+            el.querySelectorAll('small').forEach(s => { s.style.color = ''; });
+          }
+        });
+      }
+
+      function searchCustomers(term) {
+        const q = term.trim().toLowerCase();
+        if (q.length < 1) {
+          hideCustomerSuggestions();
+          return;
+        }
+        const matches = receiptCustomers.filter(c => {
+          const name = (c.name || '').toLowerCase();
+          const phone = (c.phone || '').toLowerCase();
+          const address = (c.address || '').toLowerCase();
+          return name.includes(q) || phone.includes(q) || address.includes(q);
+        }).slice(0, 10);
+        renderSuggestions(matches);
+      }
+
+      function handleCustomerKeydown(e) {
+        const items = suggestionsDiv.querySelectorAll('.customer-suggestion-item');
+        if (!items.length || suggestionsDiv.style.display === 'none') return;
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+          highlightCustomerSuggestion();
+          items[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          selectedIndex = Math.max(selectedIndex - 1, 0);
+          highlightCustomerSuggestion();
+          items[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter' && selectedIndex >= 0) {
+          e.preventDefault();
+          fillCustomerFields(filteredCustomers[selectedIndex]);
+        } else if (e.key === 'Escape') {
+          hideCustomerSuggestions();
+        }
+      }
+
+      nameInput.addEventListener('input', function() {
+        searchCustomers(this.value);
+      });
+      nameInput.addEventListener('keydown', handleCustomerKeydown);
+      nameInput.addEventListener('blur', () => {
+        setTimeout(hideCustomerSuggestions, 200);
+      });
+
+      if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+          searchCustomers(this.value);
+        });
+        phoneInput.addEventListener('keydown', handleCustomerKeydown);
+        phoneInput.addEventListener('focus', function() {
+          if (this.value.trim()) searchCustomers(this.value);
+        });
+      }
+
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('#customer-name') && !e.target.closest('#customer-phone') && !e.target.closest('#customer-suggestions')) {
+          hideCustomerSuggestions();
+        }
+      });
+    }
+
     async function loadReceiptProducts() {
       try {
         // Don't load all products - we'll use server-side search instead
@@ -5272,6 +5712,8 @@
         // Auto-generate invoice number
         document.querySelector('input[name="invoice_number"]').value = generateInvoiceNumber();
         
+        await loadReceiptCustomers();
+        initializeCustomerSearch();
         // Initialize product search autocomplete with server-side search
         initializeProductSearch();
         
@@ -5859,6 +6301,7 @@
       document.getElementById('discount-value').value = '';
       document.getElementById('discount-type').value = 'fixed';
       selectPaymentMethod('cash'); // Reset to cash
+      hideCustomerSuggestions();
       updateReceiptDisplay();
       document.getElementById('receipt-preview').innerHTML = '<p class="text-muted text-center">Add items to see preview</p>';
     }
@@ -6678,6 +7121,137 @@
     // ─────────────────────────────────────────────────────────────────
 
     // Company settings management
+    function formatFileSize(bytes) {
+      if (!bytes || bytes < 1024) return `${bytes || 0} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    }
+
+    async function loadBackupStatus() {
+      const card = document.getElementById('desktop-backup-card');
+      const statusEl = document.getElementById('backup-status-text');
+      const tbody = document.getElementById('tbl-database-backups');
+      if (!card || !window.electronAPI?.listDatabaseBackups) {
+        if (card) card.classList.add('d-none');
+        return;
+      }
+
+      card.classList.remove('d-none');
+
+      try {
+        const data = await window.electronAPI.listDatabaseBackups();
+        if (!data?.ok) {
+          statusEl.textContent = 'Could not load backup information.';
+          return;
+        }
+
+        const items = data.items || [];
+        const latest = items[0];
+        if (latest) {
+          const when = new Date(latest.modified).toLocaleString();
+          statusEl.textContent = `Latest backup: ${latest.name} (${when}). Auto-backups run daily and when the app closes.`;
+        } else {
+          statusEl.textContent = 'No backups yet. Click "Backup Now" to create your first copy.';
+        }
+
+        if (items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No backups found</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = items.slice(0, 10).map((item) => {
+          const when = new Date(item.modified).toLocaleString();
+          return `<tr>
+            <td class="small">${escapeHtml(item.name)}</td>
+            <td class="small">${escapeHtml(when)}</td>
+            <td class="small">${formatFileSize(item.size)}</td>
+            <td class="text-end">
+              <button type="button" class="btn btn-outline-warning btn-sm" data-restore-path="${escapeHtml(item.path)}">Restore</button>
+            </td>
+          </tr>`;
+        }).join('');
+
+        tbody.querySelectorAll('[data-restore-path]').forEach((btn) => {
+          btn.addEventListener('click', () => restoreDatabaseBackup(btn.getAttribute('data-restore-path')));
+        });
+      } catch (error) {
+        console.error('Failed to load backup status:', error);
+        statusEl.textContent = 'Could not load backup information.';
+      }
+    }
+
+    async function backupDatabaseNow() {
+      if (!window.electronAPI?.backupDatabase) return;
+      try {
+        const result = await window.electronAPI.backupDatabase();
+        if (result?.ok) {
+          showToast('Backup saved', 'Your database was copied to the backup folders.', 'success');
+          loadBackupStatus();
+        } else {
+          showToast('Backup failed', result?.error || 'Could not create backup.', 'danger');
+        }
+      } catch (error) {
+        showToast('Backup failed', error.message || 'Could not create backup.', 'danger');
+      }
+    }
+
+    async function restoreDatabaseBackup(backupPath) {
+      if (!window.electronAPI?.restoreDatabase || !backupPath) return;
+      if (!confirm('Restore this backup? Current data will be replaced. A safety copy is made first.')) return;
+      try {
+        const result = await window.electronAPI.restoreDatabase(backupPath);
+        if (result?.ok) {
+          showToast('Database restored', 'Reloading with restored data...', 'success');
+          setTimeout(() => window.location.reload(), 1200);
+        } else {
+          showToast('Restore failed', result?.error || 'Could not restore backup.', 'danger');
+        }
+      } catch (error) {
+        showToast('Restore failed', error.message || 'Could not restore backup.', 'danger');
+      }
+    }
+
+    async function exportDatabaseBackup() {
+      if (!window.electronAPI?.exportDatabase) return;
+      try {
+        const result = await window.electronAPI.exportDatabase();
+        if (result?.cancelled) return;
+        if (result?.ok) {
+          showToast('Export complete', `Saved to ${result.path}`, 'success');
+        } else {
+          showToast('Export failed', result?.error || 'Could not export database.', 'danger');
+        }
+      } catch (error) {
+        showToast('Export failed', error.message || 'Could not export database.', 'danger');
+      }
+    }
+
+    async function importDatabaseBackup() {
+      if (!window.electronAPI?.importDatabase) return;
+      if (!confirm('Import a backup file? Current data will be replaced. A safety copy is made first.')) return;
+      try {
+        const result = await window.electronAPI.importDatabase();
+        if (result?.cancelled) return;
+        if (result?.ok) {
+          showToast('Import complete', 'Reloading with imported data...', 'success');
+          setTimeout(() => window.location.reload(), 1200);
+        } else {
+          showToast('Import failed', result?.error || 'Could not import database.', 'danger');
+        }
+      } catch (error) {
+        showToast('Import failed', error.message || 'Could not import database.', 'danger');
+      }
+    }
+
+    async function openBackupFolder() {
+      if (!window.electronAPI?.openBackupFolder) return;
+      try {
+        await window.electronAPI.openBackupFolder();
+      } catch (error) {
+        showToast('Could not open folder', error.message || 'Try again from File Explorer.', 'danger');
+      }
+    }
+
     async function loadCompanySettings() {
       try {
         // Load from database via API
@@ -7491,8 +8065,10 @@
 
     // Event listeners
     document.addEventListener('DOMContentLoaded', function() {
+      initializeDesktopApp();
+
       // Simple, non-intrusive fix for Electron focus issues
-      if (window.navigator.userAgent.includes('Electron')) {
+      if (isDesktopApp || window.navigator.userAgent.includes('Electron')) {
         console.log('Electron detected: Applying lightweight input fix');
         
         // Lightweight periodic check - only fixes pointer-events, doesn't force-enable everything
@@ -7560,7 +8136,31 @@
 
       // Load company settings from database
       initializeCompanySettings();
-      initializeCompanySettings();
+      bindIdleTracking();
+
+      document.getElementById('toggle-login-password')?.addEventListener('click', function() {
+        const input = document.getElementById('login-password');
+        const icon = this.querySelector('i');
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        icon.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+        this.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      });
+
+      document.getElementById('sidebar-toggle')?.addEventListener('click', function() {
+        const sidebar = document.getElementById('app-sidebar');
+        const open = sidebar.classList.toggle('sidebar-open');
+        this.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+
+      document.querySelectorAll('#app-sidebar .nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+          if (window.innerWidth < 992) {
+            document.getElementById('app-sidebar')?.classList.remove('sidebar-open');
+            document.getElementById('sidebar-toggle')?.setAttribute('aria-expanded', 'false');
+          }
+        });
+      });
       
       // Login form
       document.getElementById('form-login').addEventListener('submit', async function(e) {
@@ -7720,7 +8320,36 @@
                   method: 'POST',
                   body: JSON.stringify({ name: customerName, phone: customerPhone, address: customerAddress })
                 });
-                customer = { id: newCust.id };
+                customer = { id: newCust.id, name: customerName, phone: customerPhone, address: customerAddress };
+              } else if (
+                (customer.phone || '') !== customerPhone ||
+                (customer.address || '') !== customerAddress ||
+                (customer.name || '') !== customerName
+              ) {
+                await apiCall(`api/customers.php?id=${customer.id}`, {
+                  method: 'PUT',
+                  body: JSON.stringify({
+                    name: customerName,
+                    phone: customerPhone,
+                    address: customerAddress,
+                    credit_limit: customer.credit_limit || 0,
+                    notes: customer.notes || ''
+                  })
+                });
+              }
+
+              // Refresh local customer cache for autocomplete
+              const existingIdx = receiptCustomers.findIndex(c => c.id === customer.id);
+              const updatedCustomer = {
+                id: customer.id,
+                name: customerName,
+                phone: customerPhone,
+                address: customerAddress
+              };
+              if (existingIdx >= 0) {
+                receiptCustomers[existingIdx] = { ...receiptCustomers[existingIdx], ...updatedCustomer };
+              } else {
+                receiptCustomers.push(updatedCustomer);
               }
 
               // If credit sale, also record the debt
@@ -8035,7 +8664,7 @@
     }
 
     // ============================================================
-    // ANTI-THEFT MONITOR
+    // INVENTORY AUDIT
     // ============================================================
 
     let varianceData = [];
@@ -8581,11 +9210,17 @@
     let allCustomers = [];
 
     async function loadCreditSection() {
-      await Promise.all([loadDebtors(), loadAllCustomers()]);
+      if (currentUser?.role === 'admin') {
+        await Promise.all([loadDebtors(), loadAllCustomers()]);
+      } else {
+        showCreditTab('customers');
+        await loadAllCustomers();
+      }
       updateCreditBadge();
     }
 
     async function loadDebtors() {
+      if (currentUser?.role !== 'admin') return;
       try {
         const data = await apiCall('api/customers.php?action=debtors');
         const debtors = data.items || [];
@@ -8644,8 +9279,8 @@
           <td><strong>${c.name}</strong></td>
           <td>${c.phone || '—'}</td>
           <td>${c.address || '—'}</td>
-          <td class="${parseFloat(c.total_debt) > 0 ? 'text-danger fw-bold' : 'text-success'}">
-            ${formatCurrency(c.total_debt)}
+          <td class="${c.total_debt != null && parseFloat(c.total_debt) > 0 ? 'text-danger fw-bold' : 'text-success'}">
+            ${c.total_debt != null ? formatCurrency(c.total_debt) : '—'}
           </td>
           <td>
             <button class="btn btn-sm btn-primary me-1" onclick="viewCustomerDetail(${c.id})">

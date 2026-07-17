@@ -1,22 +1,12 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/../src/db.php';
+require_once __DIR__ . '/../src/auth.php';
 header('Content-Type: application/json');
-session_start();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-if (!isset($_SESSION['user_id'])) { 
-    http_response_code(401); 
-    echo json_encode(['error' => 'unauthenticated']); 
-    exit; 
-}
-
-function json_input(): array {
-    $raw = file_get_contents('php://input');
-    $data = json_decode($raw, true);
-    return is_array($data) ? $data : [];
-}
+require_authenticated();
 
 try {
     if ($method === 'GET') {

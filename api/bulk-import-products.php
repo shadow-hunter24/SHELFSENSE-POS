@@ -1,24 +1,13 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/../src/db.php';
+require_once __DIR__ . '/../src/auth.php';
 header('Content-Type: application/json');
-session_start();
+
+require_admin();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'POST';
-
-// Only admins can bulk import
-if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['error' => 'Only administrators can bulk import products']);
-    exit;
-}
-
-function json_input(): array {
-    $raw = file_get_contents('php://input');
-    $data = json_decode($raw, true);
-    return is_array($data) ? $data : [];
-}
 
 function generateSKU(PDO $pdo, string $productName): string {
     // Generate SKU from product name

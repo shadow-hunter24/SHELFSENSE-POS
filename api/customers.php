@@ -1,23 +1,12 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/../src/db.php';
+require_once __DIR__ . '/../src/auth.php';
 header('Content-Type: application/json');
-session_start();
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'unauthenticated']);
-    exit;
-}
-
-function json_input(): array {
-    $raw = file_get_contents('php://input');
-    $data = json_decode($raw, true);
-    return is_array($data) ? $data : [];
-}
+require_authenticated();
 
 // Ensure tables exist
 $pdo->exec('CREATE TABLE IF NOT EXISTS customers (
@@ -89,8 +78,13 @@ try {
             exit;
         }
 
-        // Customers who owe (debt summary)
+        // Customers who owe (debt summary) — admin only
         if ($action === 'debtors') {
+            if (!is_admin()) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Only administrators can view debtor summaries']);
+                exit;
+            }
             $stmt = $pdo->query('
                 SELECT c.id, c.name, c.phone, c.address,
                        COUNT(cs.id) as total_credit_sales,
@@ -133,14 +127,22 @@ try {
         }
 
         // All customers list
-        $stmt = $pdo->query('
-            SELECT c.*,
-                   COALESCE(SUM(CASE WHEN cs.status != "paid" THEN cs.balance ELSE 0 END), 0) as total_debt
-            FROM customers c
-            LEFT JOIN credit_sales cs ON c.id = cs.customer_id
-            GROUP BY c.id
-            ORDER BY c.name ASC
-        ');
+        if (is_admin()) {
+            $stmt = $pdo->query('
+                SELECT c.*,
+                       COALESCE(SUM(CASE WHEN cs.status != "paid" THEN cs.balance ELSE 0 END), 0) as total_debt
+                FROM customers c
+                LEFT JOIN credit_sales cs ON c.id = cs.customer_id
+                GROUP BY c.id
+                ORDER BY c.name ASC
+            ');
+        } else {
+            $stmt = $pdo->query('
+                SELECT c.id, c.name, c.phone, c.address, c.credit_limit, c.notes, c.created_at
+                FROM customers c
+                ORDER BY c.name ASC
+            ');
+        }
         echo json_encode(['items' => $stmt->fetchAll()]);
         exit;
     }
@@ -177,7 +179,7 @@ try {
 
             // Record payment
             $ins = $pdo->prepare('INSERT INTO credit_payments (credit_sale_id, customer_id, amount, payment_method, payment_reference, notes, recorded_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
-            $ins->execute([$csid, $sale['customer_id'], $amount, $paymentMethod, $reference, $notes, $_SESSION['user_id']]);
+            $ins->execute([$csid, $sale['customer_id'], $amount, $paymentMethod, $reference, $notes, get_session_user_id()]);
 
             // Update credit sale
             $upd = $pdo->prepare('UPDATE credit_sales SET amount_paid = ?, balance = ?, status = ? WHERE id = ?');
@@ -226,8 +228,34 @@ try {
                 exit;
             }
 
+            $custStmt = $pdo->prepare('SELECT credit_limit FROM customers WHERE id = ?');
+            $custStmt->execute([$customerId]);
+            $customer = $custStmt->fetch();
+            if (!$customer) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Customer not found']);
+                exit;
+            }
+
+            $creditLimit = (float)($customer['credit_limit'] ?? 0);
+            if ($creditLimit > 0) {
+                $debtStmt = $pdo->prepare('SELECT COALESCE(SUM(balance), 0) FROM credit_sales WHERE customer_id = ? AND status != "paid"');
+                $debtStmt->execute([$customerId]);
+                $currentDebt = (float)$debtStmt->fetchColumn();
+                if (($currentDebt + $amountOwed) > $creditLimit) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'error' => 'credit_limit_exceeded',
+                        'message' => 'This sale would exceed the customer credit limit.',
+                        'credit_limit' => $creditLimit,
+                        'current_debt' => $currentDebt,
+                    ]);
+                    exit;
+                }
+            }
+
             $ins = $pdo->prepare('INSERT INTO credit_sales (customer_id, receipt_id, invoice_number, amount_owed, amount_paid, balance, status, due_date, notes, created_by) VALUES (?, ?, ?, ?, 0, ?, "unpaid", ?, ?, ?)');
-            $ins->execute([$customerId, $receiptId, $invoiceNumber, $amountOwed, $amountOwed, $dueDate ?: null, $notes, $_SESSION['user_id']]);
+            $ins->execute([$customerId, $receiptId, $invoiceNumber, $amountOwed, $amountOwed, $dueDate ?: null, $notes, get_session_user_id()]);
             echo json_encode(['id' => (int)$pdo->lastInsertId(), 'success' => true]);
             exit;
         }
