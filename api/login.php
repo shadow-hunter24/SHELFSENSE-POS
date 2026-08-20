@@ -4,10 +4,9 @@ declare(strict_types=1);
 require __DIR__ . '/../src/db.php';
 require_once __DIR__ . '/../src/auth.php';
 require_once __DIR__ . '/../src/rate_limit.php';
+require_once __DIR__ . '/../src/csrf.php';
 
 header('Content-Type: application/json');
-
-$pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'POST') {
@@ -53,12 +52,13 @@ if ($method === 'POST') {
         exit;
     }
 
+    // Check account status AFTER verifying the password.
+    // We return the same 401 (not 403) so an attacker cannot enumerate
+    // which usernames exist but are deactivated vs which simply don't exist.
     if (($u['status'] ?? 'active') !== 'active') {
-        http_response_code(403);
-        echo json_encode([
-            'error' => 'account_deactivated',
-            'message' => 'Your account has been deactivated. Please contact the administrator.',
-        ]);
+        record_login_failure();
+        http_response_code(401);
+        echo json_encode(['error' => 'invalid credentials']);
         exit;
     }
 
@@ -70,10 +70,14 @@ if ($method === 'POST') {
     $_SESSION['role'] = $u['role'];
     $_SESSION['last_activity'] = time();
 
+    // Generate a fresh CSRF token bound to this new session
+    $csrfToken = regenerate_csrf_token();
+
     echo json_encode([
         'ok' => true,
         'role' => $u['role'],
         'must_change_password' => (int)($u['must_change_password'] ?? 0) === 1,
+        'csrf_token' => $csrfToken,
     ]);
     exit;
 }

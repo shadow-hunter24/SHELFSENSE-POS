@@ -250,9 +250,21 @@ function fmt(n){ return 'GH₵'+parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3}
 function fmtDate(s){ return s ? new Date(s).toLocaleString('en-GH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''; }
 function trend(a,b){ if(!b||b==0)return ''; const p=((a-b)/b*100).toFixed(1); return p>0?`<span class="trend-up">▲${p}%</span>`:p<0?`<span class="trend-down">▼${Math.abs(p)}%</span>`:`<span class="trend-flat">=same</span>`; }
 
+// CSRF token — stored after login, sent with every mutating request
+let ownerCsrfToken = '';
+
 async function api(action, opts){
   const url = API + (action ? '?action='+action : '');
-  const res = await fetch(url, opts||{});
+  // Attach CSRF token to state-changing requests
+  const method = ((opts && opts.method) || 'GET').toUpperCase();
+  const mutating = !['GET','HEAD','OPTIONS'].includes(method);
+  const headers = Object.assign(
+    {'Content-Type':'application/json'},
+    mutating && ownerCsrfToken ? {'X-CSRF-Token': ownerCsrfToken} : {},
+    (opts && opts.headers) || {}
+  );
+  const mergedOpts = Object.assign({credentials:'same-origin'}, opts||{}, {headers});
+  const res = await fetch(url, mergedOpts);
   if(res.status===401||res.status===403){ showPin(); return null; }
   return res.json();
 }
@@ -283,6 +295,8 @@ async function doLogin(){
       return;
     }
     if(d.role !== 'admin'){ errEl.textContent = 'Admin access required'; await fetch('api/logout.php',{method:'POST'}); return; }
+    // Store CSRF token for all subsequent owner dashboard requests
+    if(d.csrf_token) ownerCsrfToken = d.csrf_token;
     document.getElementById('pin-screen').style.display='none';
     document.getElementById('app').style.display='block';
     loadCurrentTab();
@@ -291,7 +305,8 @@ async function doLogin(){
 }
 
 async function doLogout(){
-  await fetch('api/logout.php',{method:'POST'});
+  await fetch('api/logout.php',{method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':ownerCsrfToken}});
+  ownerCsrfToken = '';
   document.getElementById('login-password').value='';
   document.getElementById('pin-error').textContent='';
   showPin();

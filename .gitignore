@@ -6,6 +6,10 @@ desktop/node_modules/
 data/stocktracker.sqlite
 data/login_attempts.json
 
+# First-run setup file — contains auto-generated admin password, must never be committed
+data/FIRST_RUN_PASSWORD.txt
+FIRST_RUN_PASSWORD.txt
+
 # OS files
 .DS_Store
 Thumbs.db

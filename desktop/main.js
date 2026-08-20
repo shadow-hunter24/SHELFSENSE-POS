@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, powerSaveBlocker, dialog, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, Tray, ipcMain, powerSaveBlocker, dialog, nativeImage, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -7,6 +7,7 @@ const { autoUpdater } = require('electron-updater');
 
 let phpServer = null;
 let mainWindow = null;
+let appTray = null;
 let serverUrl = 'http://127.0.0.1:8000/';
 let isServerStarting = false;
 let windowCreated = false;
@@ -15,6 +16,30 @@ let powerSaveBlockerId = null;
 let activeDbPath = null;
 let activeWritableDataDir = null;
 const MAX_BACKUPS_PER_DIR = 30;
+
+// ─── Persist window bounds across sessions ───────────────────────
+const WINDOW_STATE_FILE = () => path.join(app.getPath('userData'), 'window-state.json');
+
+function loadWindowState() {
+  try {
+    if (fs.existsSync(WINDOW_STATE_FILE())) {
+      return JSON.parse(fs.readFileSync(WINDOW_STATE_FILE(), 'utf8'));
+    }
+  } catch (e) { /* ignore */ }
+  return { width: 1280, height: 820, x: undefined, y: undefined, maximized: false };
+}
+
+function saveWindowState() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  try {
+    const bounds = mainWindow.getBounds();
+    const state = {
+      ...bounds,
+      maximized: mainWindow.isMaximized(),
+    };
+    fs.writeFileSync(WINDOW_STATE_FILE(), JSON.stringify(state), 'utf8');
+  } catch (e) { /* ignore */ }
+}
 
 // ─── Logging Setup ───────────────────────────────────────────────
 const logDir = path.join(app.getPath('userData'), 'logs');
@@ -740,28 +765,101 @@ function stopPhpServer() {
   }
 }
 
+function createTray() {
+  if (appTray) return; // already created
+  const iconPath = getAppIconPath();
+  if (!iconPath) return;
+
+  try {
+    appTray = new Tray(iconPath);
+    appTray.setToolTip('C F Trading ENT POS — Running');
+
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: 'Open C F Trading ENT POS',
+        click: () => {
+          if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
+        },
+      },
+      { type: 'separator' },
+      {
+        label: 'Quit',
+        click: () => {
+          appTray.destroy();
+          appTray = null;
+          app.quit();
+        },
+      },
+    ]);
+
+    appTray.setContextMenu(contextMenu);
+    appTray.on('double-click', () => {
+      if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
+    });
+  } catch (e) {
+    writeLog({ level: 'WARN', category: 'APP', message: 'Tray creation failed: ' + e.message });
+  }
+}
+
 function createWindow() {
   if (mainWindow) {
     console.log('Window already exists, focusing existing window...');
+    mainWindow.show();
     mainWindow.focus();
     return;
   }
 
   const windowIcon = getWindowIcon();
+  const savedState = loadWindowState();
+
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: savedState.width,
+    height: savedState.height,
+    x: savedState.x,
+    y: savedState.y,
+    minWidth: 960,
+    minHeight: 640,
     show: false,
-    title: "C F Trading ENT POS",
+    title: 'C F Trading ENT POS',
     ...(windowIcon ? { icon: windowIcon } : {}),
-    webPreferences: { 
-      nodeIntegration: false, 
+    webPreferences: {
+      nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      webSecurity: false,
-      allowRunningInsecureContent: true,
-      backgroundThrottling: false, // CRITICAL: prevent throttling
+      // webSecurity must remain true — disabling it removes same-origin protection.
+      // The app communicates only with 127.0.0.1:8000 (its own bundled PHP server),
+      // so same-origin is never a problem.
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      backgroundThrottling: false, // CRITICAL: prevent throttling on busy POS shifts
       offscreen: false,
+    }
+  });
+
+  if (savedState.maximized) mainWindow.maximize();
+
+  // Persist window bounds on move/resize (debounced)
+  const saveBoundsDebounced = (() => {
+    let t;
+    return () => { clearTimeout(t); t = setTimeout(saveWindowState, 500); };
+  })();
+  mainWindow.on('resize', saveBoundsDebounced);
+  mainWindow.on('move', saveBoundsDebounced);
+  mainWindow.on('maximize', saveWindowState);
+  mainWindow.on('unmaximize', saveWindowState);
+
+  // Create system tray
+  createTray();
+
+  // Minimise to tray instead of hiding completely
+  mainWindow.on('minimize', () => {
+    mainWindow.hide();
+    if (appTray && appTray.displayBalloon) {
+      appTray.displayBalloon({
+        title: 'C F Trading ENT POS',
+        content: 'Still running in the background. Click the tray icon to restore.',
+        iconType: 'info',
+      });
     }
   });
 
@@ -822,16 +920,55 @@ function createWindow() {
   });
 
   // Add keyboard shortcut for refresh (Ctrl+R or F5)
+  // Block DevTools in production builds — Ctrl+Shift+I / F12 should not
+  // allow customers or cashiers to inspect the app internals.
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if ((input.control && input.key.toLowerCase() === 'r') || input.key === 'F5') {
       mainWindow.webContents.reload();
     }
+    if (app.isPackaged) {
+      const isDevTools =
+        (input.control && input.shift && input.key.toLowerCase() === 'i') ||
+        (input.control && input.shift && input.key.toLowerCase() === 'j') ||
+        input.key === 'F12';
+      if (isDevTools) {
+        event.preventDefault();
+      }
+    }
   });
 
   mainWindow.on('closed', () => {
+    saveWindowState();
     stopPhpServer();
+    if (appTray) { appTray.destroy(); appTray = null; }
     mainWindow = null;
     windowCreated = false;
+  });
+
+  // Warn before closing if renderer reports an active (unsaved) receipt.
+  // The renderer sets window.__activeReceiptInProgress = true while a sale is open.
+  mainWindow.on('close', (e) => {
+    if (!mainWindow) return;
+    mainWindow.webContents.executeJavaScript('window.__activeReceiptInProgress || false')
+      .then((active) => {
+        if (active) {
+          e.preventDefault();
+          dialog.showMessageBox(mainWindow, {
+            type: 'warning',
+            title: 'Receipt In Progress',
+            message: 'A receipt is currently open.',
+            detail: 'Closing now will discard the unsaved sale. Are you sure you want to quit?',
+            buttons: ['Keep Open', 'Discard & Quit'],
+            defaultId: 0,
+            cancelId: 0,
+          }).then(({ response }) => {
+            if (response === 1) {
+              mainWindow.destroy(); // force close without triggering 'close' again
+            }
+          });
+        }
+      })
+      .catch(() => {}); // If JS context is gone, allow close
   });
 
   // Open DevTools in development

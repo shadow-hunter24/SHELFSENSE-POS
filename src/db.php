@@ -383,15 +383,47 @@ function migrate_branding_settings(PDO $pdo): void {
 }
 
 function seed_admin_if_missing(PDO $pdo): void {
-    // Create a default admin if none exists
+    // Create a default admin if none exists.
+    // A cryptographically random password is generated on first run and written
+    // to a setup file in the writable data directory. This means the credential
+    // is NEVER hardcoded in source code or committed to version control.
     $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role='admin'");
     $count = (int)$stmt->fetchColumn();
     if ($count === 0) {
         $username = 'admin';
-        $passwordHash = password_hash('Admin@123', PASSWORD_DEFAULT);
+
+        // Generate a secure random first-run password
+        $firstRunPassword = bin2hex(random_bytes(8)); // 16 hex chars
+
+        // Write it to a setup file so the operator can read it on first launch
+        $dataDir = getenv('STOCKTRACKER_DATA_DIR') ?: (__DIR__ . '/../data');
+        if (!is_dir($dataDir)) {
+            mkdir($dataDir, 0700, true);
+        }
+        $setupFile = rtrim($dataDir, '/\\') . '/FIRST_RUN_PASSWORD.txt';
+        $setupNote  = "C F Trading ENT POS — First Run Setup\n";
+        $setupNote .= "======================================\n";
+        $setupNote .= "Default admin credentials (change immediately after first login):\n\n";
+        $setupNote .= "  Username : admin\n";
+        $setupNote .= "  Password : {$firstRunPassword}\n\n";
+        $setupNote .= "This file will be removed automatically after you change your password.\n";
+        $setupNote .= "Generated: " . date('Y-m-d H:i:s') . "\n";
+
+        file_put_contents($setupFile, $setupNote, LOCK_EX);
+
+        $passwordHash = password_hash($firstRunPassword, PASSWORD_DEFAULT);
         $role = 'admin';
         $ins = $pdo->prepare('INSERT INTO users (username, password_hash, role, must_change_password) VALUES (?, ?, ?, 1)');
         $ins->execute([$username, $passwordHash, $role]);
+    }
+}
+
+function remove_first_run_file_if_exists(): void {
+    // Call this after a successful password change to clean up the setup file.
+    $dataDir = getenv('STOCKTRACKER_DATA_DIR') ?: (__DIR__ . '/../data');
+    $setupFile = rtrim($dataDir, '/\\') . '/FIRST_RUN_PASSWORD.txt';
+    if (file_exists($setupFile)) {
+        @unlink($setupFile);
     }
 }
 

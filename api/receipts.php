@@ -2,11 +2,13 @@
 declare(strict_types=1);
 require __DIR__ . '/../src/db.php';
 require_once __DIR__ . '/../src/auth.php';
+require_once __DIR__ . '/../src/csrf.php';
 header('Content-Type: application/json');
 
 $pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 require_authenticated();
+verify_csrf_token();
 
 try {
     if ($method === 'POST') {

@@ -3526,12 +3526,94 @@
 
     // Global variables
     let currentUser = null;
+    let csrfToken = '';          // populated from login.php / me.php, sent with every mutation
     let sessionTimeoutMs = 30 * 60 * 1000;
     let idleTimer = null;
     let isDesktopApp = !!(window.electronAPI && window.electronAPI.isDesktop);
     let receiptItems = [];
     let products = [];
     let batches = []; // For expiry tracking
+
+    // ─── Shared dialog helpers (replaces native alert/confirm) ───────────
+    // Usage:
+    //   await showAlert('Title', 'Message text', 'danger')
+    //   const yes = await showConfirm('Title', 'Are you sure?', 'danger', 'Delete', 'Cancel')
+    //
+    function showAlert(title, message, type = 'info') {
+      return new Promise((resolve) => {
+        const headerEl   = document.getElementById('appDialogModalHeader');
+        const titleEl    = document.getElementById('appDialogModalTitle');
+        const bodyEl     = document.getElementById('appDialogModalBody');
+        const footerEl   = document.getElementById('appDialogModalFooter');
+        const confirmBtn = document.getElementById('appDialogConfirmBtn');
+        const cancelBtn  = document.getElementById('appDialogCancelBtn');
+
+        const colorMap = { danger:'#dc3545', warning:'#ffc107', success:'#198754', info:'#0dcaf0' };
+        const iconMap  = { danger:'bi-exclamation-triangle-fill', warning:'bi-exclamation-circle-fill', success:'bi-check-circle-fill', info:'bi-info-circle-fill' };
+
+        titleEl.textContent  = title;
+        bodyEl.innerHTML     = `<div class="d-flex gap-2 align-items-start">
+          <i class="bi ${iconMap[type]||iconMap.info} fs-4 flex-shrink-0" style="color:${colorMap[type]||colorMap.info}"></i>
+          <div>${message}</div></div>`;
+        headerEl.className   = 'modal-header';
+        cancelBtn.style.display = 'none';
+        confirmBtn.textContent  = 'OK';
+        confirmBtn.className    = `btn btn-${type === 'danger' ? 'danger' : type === 'warning' ? 'warning' : 'primary'}`;
+
+        const modalEl = document.getElementById('appDialogModal');
+        const modal   = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        const onConfirm = () => { cleanup(); modal.hide(); resolve(); };
+        confirmBtn.addEventListener('click', onConfirm, { once: true });
+
+        function cleanup() {
+          cancelBtn.style.display = '';
+          confirmBtn.removeEventListener('click', onConfirm);
+        }
+        modalEl.addEventListener('hidden.bs.modal', () => { cleanup(); resolve(); }, { once: true });
+        modal.show();
+      });
+    }
+
+    function showConfirm(title, message, type = 'warning', confirmLabel = 'Confirm', cancelLabel = 'Cancel') {
+      return new Promise((resolve) => {
+        const headerEl   = document.getElementById('appDialogModalHeader');
+        const titleEl    = document.getElementById('appDialogModalTitle');
+        const bodyEl     = document.getElementById('appDialogModalBody');
+        const confirmBtn = document.getElementById('appDialogConfirmBtn');
+        const cancelBtn  = document.getElementById('appDialogCancelBtn');
+
+        const colorMap = { danger:'#dc3545', warning:'#856404', success:'#198754', info:'#0dcaf0' };
+        const iconMap  = { danger:'bi-exclamation-triangle-fill', warning:'bi-exclamation-circle-fill', success:'bi-question-circle-fill', info:'bi-question-circle-fill' };
+
+        titleEl.textContent     = title;
+        bodyEl.innerHTML        = `<div class="d-flex gap-2 align-items-start">
+          <i class="bi ${iconMap[type]||iconMap.warning} fs-4 flex-shrink-0" style="color:${colorMap[type]||colorMap.warning}"></i>
+          <div>${message}</div></div>`;
+        headerEl.className      = 'modal-header';
+        cancelBtn.style.display = '';
+        cancelBtn.textContent   = cancelLabel;
+        confirmBtn.textContent  = confirmLabel;
+        confirmBtn.className    = `btn btn-${type === 'danger' ? 'danger' : type === 'warning' ? 'warning' : 'primary'}`;
+
+        const modalEl = document.getElementById('appDialogModal');
+        const modal   = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        const onConfirm = () => { cleanup(); modal.hide(); resolve(true); };
+        const onCancel  = () => { cleanup(); modal.hide(); resolve(false); };
+        confirmBtn.addEventListener('click', onConfirm, { once: true });
+        cancelBtn.addEventListener('click', onCancel, { once: true });
+
+        function cleanup() {
+          confirmBtn.removeEventListener('click', onConfirm);
+          cancelBtn.removeEventListener('click', onCancel);
+          cancelBtn.style.display = '';
+        }
+        modalEl.addEventListener('hidden.bs.modal', () => { cleanup(); resolve(false); }, { once: true });
+        modal.show();
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────────
     
     // Static company information (loaded from database)
     let COMPANY_INFO = {
@@ -3665,10 +3747,16 @@
     // API functions
     async function apiCall(url, options = {}) {
       try {
+        // Attach CSRF token to every state-changing request
+        const method = (options.method || 'GET').toUpperCase();
+        const mutating = !['GET', 'HEAD', 'OPTIONS'].includes(method);
+        const csrfHeader = mutating && csrfToken ? { 'X-CSRF-Token': csrfToken } : {};
+
         const response = await fetch(url, {
           credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json',
+            ...csrfHeader,
             ...options.headers
           },
           ...options
@@ -3707,6 +3795,8 @@
         });
         
         if (data.ok) {
+          // Store CSRF token returned by login for all subsequent requests
+          if (data.csrf_token) csrfToken = data.csrf_token;
           if (data.must_change_password) {
             currentUser = { username, role: data.role, must_change_password: true };
             showLoginScreen();
@@ -3817,6 +3907,7 @@
       AppLogger.action('AUTH', `User logged out: "${currentUser?.username || 'unknown'}"`);
       await apiCall('api/logout.php', { method: 'POST' });
       currentUser = null;
+      csrfToken = '';
       showLoginScreen();
     }
 
@@ -3825,6 +3916,8 @@
         const data = await apiCall('api/me.php');
         if (data.authenticated) {
           currentUser = data;
+          // Keep CSRF token fresh — me.php always returns the session token
+          if (data.csrf_token) csrfToken = data.csrf_token;
           if (data.must_change_password) {
             showLoginScreen();
             showChangePasswordModal(true);
@@ -4119,22 +4212,22 @@
       
       // Validate required fields
       if (!batchData.product_id || isNaN(batchData.product_id)) {
-        alert('Product ID is missing. Please close and reopen the modal.');
+        await showAlert('Missing Data', 'Product ID is missing. Please close and reopen the modal.', 'warning');
         return;
       }
       
       if (!batchData.batch_number) {
-        alert('Batch number is missing. Please click the refresh button to generate one.');
+        await showAlert('Missing Data', 'Batch number is missing. Please click the refresh button to generate one.', 'warning');
         return;
       }
       
       if (!batchData.expiry_date) {
-        alert('Expiry date is required.');
+        await showAlert('Missing Field', 'Expiry date is required.', 'warning');
         return;
       }
       
       if (!batchData.quantity || isNaN(batchData.quantity) || batchData.quantity <= 0) {
-        alert('Please enter a valid quantity.');
+        await showAlert('Invalid Quantity', 'Please enter a valid quantity.', 'warning');
         return;
       }
       
@@ -4151,11 +4244,10 @@
         loadProducts(); // Refresh product list
         loadStock(); // Refresh stock
         loadDashboard(); // Refresh dashboard
-        
-        alert('Batch added successfully! Stock quantity updated.');
+        notifyUser('Batch added successfully! Stock quantity updated.', 'success', 'Batch Added');
         AppLogger.action('BATCH', `Batch added for product ID: ${batchData.product_id} | Batch: ${batchData.batch_number} | Qty: ${batchData.quantity} | Expiry: ${batchData.expiry_date}`);
       } catch (error) {
-        alert('Failed to add batch: ' + error.message);
+        await showAlert('Error', 'Failed to add batch: ' + error.message, 'danger');
       }
     }
 
@@ -4236,7 +4328,7 @@
           loadBatches('all');
           loadDashboard();
           showExpiryNotification();
-          alert(`Done! ${result.deleted} expired batch${result.deleted !== 1 ? 'es' : ''} deleted.`);
+          notifyUser(`Done! ${result.deleted} expired batch${result.deleted !== 1 ? 'es' : ''} deleted.`, 'success', 'Expired Batches Removed');
         },
         []
       );
@@ -4244,15 +4336,16 @@
 
     // Delete batch
     async function deleteBatch(batchId) {
-      if (!confirm('Are you sure you want to delete this batch? This will reduce the stock quantity.')) return;
+      const yes = await showConfirm('Delete Batch', 'Are you sure you want to delete this batch? This will reduce the stock quantity.', 'danger', 'Delete', 'Cancel');
+      if (!yes) return;
       
       try {
         await apiCall(`api/batches.php?id=${batchId}`, { method: 'DELETE' });
         loadBatches('all');
         loadDashboard(); // Refresh dashboard
-        alert('Batch deleted successfully!');
+        notifyUser('Batch deleted successfully.', 'success', 'Batch Deleted');
       } catch (error) {
-        alert('Failed to delete batch: ' + error.message);
+        await showAlert('Error', 'Failed to delete batch: ' + error.message, 'danger');
       }
     }
 
@@ -4425,7 +4518,8 @@
         message += '\n\nCheck "Expiry Management" section for details.';
         message += '\n\nClick OK to dismiss this notification for today.';
         
-        if (confirm(message)) {
+        const dismissed = await showConfirm('Expiry Alert', message.replace(/\n/g, '<br>'), 'warning', 'Dismiss for Today', 'Keep Showing');
+        if (dismissed) {
           localStorage.setItem('expiryNotificationDismissed', today);
         }
         
@@ -4452,8 +4546,9 @@
     }
     
     // Clear all acknowledged batches
-    function clearAcknowledgedBatches() {
-      if (confirm('This will reset all notification dismissals and show alerts again on next dashboard load. Continue?')) {
+    async function clearAcknowledgedBatches() {
+      const yes = await showConfirm('Reset Notifications', 'This will reset all notification dismissals and show alerts again on next dashboard load. Continue?', 'warning', 'Reset', 'Cancel');
+      if (yes) {
         localStorage.removeItem('dismissedExpiryBatches');
         localStorage.removeItem('expiryNotificationDismissed');
         
@@ -4706,18 +4801,18 @@
       const isAdd       = (currentStockData._action || 'add') === 'add';
 
       if (!qty || qty <= 0) {
-        alert('Please enter a valid quantity');
+        await showAlert('Invalid Quantity', 'Please enter a valid quantity.', 'warning');
         return;
       }
 
       if (!isAdd && !notes) {
-        alert('Please enter a reason for the stock reduction (required for audit trail)');
+        await showAlert('Reason Required', 'Please enter a reason for the stock reduction (required for audit trail).', 'warning');
         document.getElementById('add-stock-notes').focus();
         return;
       }
 
       if (!isAdd && qty > currentStockData.currentQty) {
-        alert(`Cannot remove ${qty} units — only ${currentStockData.currentQty} in stock`);
+        await showAlert('Insufficient Stock', `Cannot remove ${qty} units — only ${currentStockData.currentQty} in stock.`, 'danger');
         return;
       }
 
@@ -4739,14 +4834,14 @@
             : `Removed ${qty} units from ${currentStockData.productName}`,
           'success');
       } catch (error) {
-        alert('Failed to update stock: ' + error.message);
+        await showAlert('Error', 'Failed to update stock: ' + error.message, 'danger');
       }
     }
 
     async function updateStock(productId, quantity) {
       // Only admins can update stock
       if (!currentUser || currentUser.role !== 'admin') {
-        alert('Access denied. Only administrators can update stock quantities.');
+        await showAlert('Access Denied', 'Only administrators can update stock quantities.', 'danger');
         return;
       }
       
@@ -4808,7 +4903,7 @@
         const modal = new bootstrap.Modal(document.getElementById('stockHistoryModal'));
         modal.show();
       } catch (error) {
-        alert('Failed to load stock history: ' + error.message);
+        await showAlert('Error', 'Failed to load stock history: ' + error.message, 'danger');
       }
     }
 
@@ -4976,55 +5071,45 @@
         
         bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
         loadProducts();
-        alert('Product updated successfully!');
+        notifyUser('Product updated successfully.', 'success', 'Product Updated');
       } catch (error) {
         if (error.message.includes('duplicate_name') || error.message.includes('already exists')) {
-          alert('⚠️ DUPLICATE PRODUCT NAME\n\nA product with this name already exists.\n\nPlease use a different name.');
+          await showAlert('Duplicate Product Name', 'A product with this name already exists. Please use a different name.', 'warning');
         } else {
-          alert('Failed to update product: ' + error.message);
+          await showAlert('Error', 'Failed to update product: ' + error.message, 'danger');
         }
       }
     }
 
     async function deleteProduct(productId) {
-      // First confirmation - simple confirm dialog
-      if (!confirm('Are you sure you want to delete this product?')) {
-        return;
-      }
-      
+      const yes = await showConfirm('Delete Product', 'Are you sure you want to delete this product? This cannot be undone.', 'danger', 'Delete', 'Cancel');
+      if (!yes) return;
+
       try {
         await apiCall(`api/products.php?id=${productId}`, { method: 'DELETE' });
         loadProducts();
-        alert('Product deleted successfully!');
+        notifyUser('Product deleted successfully.', 'success', 'Deleted');
       } catch (error) {
         if (error.message.includes('referenced in receipts')) {
-          // Show force delete option using modal
-          const message = `
-            <div class="alert alert-warning">
-              <strong>⚠️ PRODUCT DELETION WARNING ⚠️</strong>
-            </div>
-            <p>This product cannot be deleted because it appears in existing receipts.</p>
-            <p>However, as an admin, you can <strong>FORCE DELETE</strong> this product.</p>
-            <p><strong>⚠️ FORCE DELETE will:</strong></p>
-            <ul>
+          const forceMsg = `This product appears in existing receipts and cannot be deleted normally.<br><br>
+            <strong>Force Delete will:</strong>
+            <ul class="mt-1 mb-0">
               <li>Permanently remove the product</li>
               <li>Keep existing receipts but mark items as "Deleted Product"</li>
-              <li>This <strong>CANNOT</strong> be undone</li>
-            </ul>
-          `;
-          
+              <li>This <strong>cannot</strong> be undone</li>
+            </ul>`;
           showDeleteConfirmation(
             'Force Delete Product',
-            message,
-            async (productId) => {
-              await apiCall(`api/products.php?id=${productId}&force=true`, { method: 'DELETE' });
+            forceMsg,
+            async (pid) => {
+              await apiCall(`api/products.php?id=${pid}&force=true`, { method: 'DELETE' });
               loadProducts();
-              alert('Product force deleted successfully!');
+              notifyUser('Product force deleted.', 'warning', 'Force Deleted');
             },
             [productId]
           );
         } else {
-          alert('Failed to delete product: ' + error.message);
+          await showAlert('Delete Failed', 'Failed to delete product: ' + error.message, 'danger');
         }
       }
     }
@@ -5052,7 +5137,7 @@
           await apiCall('api/products.php?all=true', { method: 'DELETE' });
           loadProducts();
           loadDashboard();
-          alert('All products deleted successfully!');
+          notifyUser('All products deleted successfully.', 'success', 'All Products Deleted');
         },
         []
       );
@@ -5109,7 +5194,7 @@
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(url), 2000);
       } catch (error) {
-        alert('Failed to download template: ' + error.message);
+        await showAlert('Error', 'Failed to download template: ' + error.message, 'danger');
       }
     }
 
@@ -5122,8 +5207,8 @@
       
       // Validate file type
       if (!file.name.endsWith('.csv')) {
-        alert('Please upload a CSV file');
-        event.target.value = ''; // Clear the input
+        await showAlert('Invalid File', 'Please upload a CSV file (.csv extension required).', 'warning');
+        event.target.value = '';
         return;
       }
       
@@ -9518,5 +9603,23 @@
     //]]>
   </script>
   <!-- End of JavaScript -->
+
+  <!-- ── Shared Alert/Confirm Modal (replaces all native alert/confirm calls) ── -->
+  <div class="modal fade" id="appDialogModal" tabindex="-1"
+       aria-labelledby="appDialogModalTitle" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header" id="appDialogModalHeader">
+          <h5 class="modal-title" id="appDialogModalTitle">Notice</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="appDialogModalBody"></div>
+        <div class="modal-footer" id="appDialogModalFooter">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="appDialogCancelBtn">Cancel</button>
+          <button type="button" class="btn btn-primary" id="appDialogConfirmBtn">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

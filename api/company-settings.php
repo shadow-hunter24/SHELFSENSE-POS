@@ -1,10 +1,12 @@
 <?php
 require_once __DIR__ . '/../src/db.php';
 require_once __DIR__ . '/../src/auth.php';
+require_once __DIR__ . '/../src/csrf.php';
 
 header('Content-Type: application/json');
 
 $method = $_SERVER['REQUEST_METHOD'];
+verify_csrf_token();
 
 try {
     $db = getDbConnection();

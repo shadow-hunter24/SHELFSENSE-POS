@@ -46,4 +46,8 @@ $hash = password_hash($new, PASSWORD_DEFAULT);
 $upd = $pdo->prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?');
 $upd->execute([$hash, get_session_user_id()]);
 
+// Clean up the first-run password file if it still exists
+require_once __DIR__ . '/../src/db.php';
+remove_first_run_file_if_exists();
+
 echo json_encode(['ok' => true, 'message' => 'Password updated successfully']);

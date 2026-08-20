@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/../src/db.php';
 require_once __DIR__ . '/../src/auth.php';
+require_once __DIR__ . '/../src/csrf.php';
 
 header('Content-Type: application/json');
 
@@ -44,4 +45,5 @@ echo json_encode([
     'must_change_password' => (int)($user['must_change_password'] ?? 0) === 1,
     'session_timeout_seconds' => get_session_timeout_seconds(),
     'desktop_app' => is_desktop_app(),
+    'csrf_token' => get_csrf_token(),  // JS reads this once and stores it for all requests
 ]);

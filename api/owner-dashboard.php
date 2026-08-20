@@ -2,9 +2,11 @@
 declare(strict_types=1);
 require __DIR__ . '/../src/db.php';
 require_once __DIR__ . '/../src/auth.php';
+require_once __DIR__ . '/../src/csrf.php';
 header('Content-Type: application/json');
 
 require_admin();
+verify_csrf_token();
 
 $pdo = get_pdo();
 
