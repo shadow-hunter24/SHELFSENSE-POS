@@ -768,7 +768,14 @@ function stopPhpServer() {
 function createTray() {
   if (appTray) return; // already created
   const iconPath = getAppIconPath();
-  if (!iconPath) return;
+  if (!iconPath) {
+    // No icon found — tray won't be created, but ensure window is visible
+    if (mainWindow && !mainWindow.isVisible()) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+    return;
+  }
 
   try {
     appTray = new Tray(iconPath);
@@ -819,7 +826,7 @@ function createWindow() {
     y: savedState.y,
     minWidth: 960,
     minHeight: 640,
-    show: false,
+    show: true,
     title: 'C F Trading ENT POS',
     ...(windowIcon ? { icon: windowIcon } : {}),
     webPreferences: {
@@ -851,16 +858,19 @@ function createWindow() {
   // Create system tray
   createTray();
 
-  // Minimise to tray instead of hiding completely
+  // Minimise to tray only when tray icon is available; otherwise use normal minimise
   mainWindow.on('minimize', () => {
-    mainWindow.hide();
-    if (appTray && appTray.displayBalloon) {
-      appTray.displayBalloon({
-        title: 'C F Trading ENT POS',
-        content: 'Still running in the background. Click the tray icon to restore.',
-        iconType: 'info',
-      });
+    if (appTray) {
+      mainWindow.hide();
+      if (appTray.displayBalloon) {
+        appTray.displayBalloon({
+          title: 'C F Trading ENT POS',
+          content: 'Still running in the background. Click the tray icon to restore.',
+          iconType: 'info',
+        });
+      }
     }
+    // No tray icon: let the window minimize normally (stays in taskbar)
   });
 
   // ── Focus Fix ─────────────────────────────────────────────────────
@@ -893,12 +903,19 @@ function createWindow() {
   
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('Window loaded successfully');
-    // Only show the window on first load, don't steal focus on subsequent navigations
+    // Always show on load (handles no-tray-icon scenario and first load)
     if (!mainWindow.isVisible()) {
       mainWindow.show();
       mainWindow.focus();
       mainWindow.webContents.focus();
     }
+    // Safety net: always bring to front after a brief delay
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    }, 1000);
   });
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
@@ -982,7 +999,7 @@ ipcMain.handle('print-receipt', async (event, htmlContent) => {
   const printWindow = new BrowserWindow({
     width: 800,
     height: 600,
-    show: false,
+    show: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true

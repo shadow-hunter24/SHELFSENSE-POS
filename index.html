@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -420,9 +420,9 @@
       }
     }
 
-    .status-icon-ok::before { content: "✓ "; color: #198754; }
+    .status-icon-ok::before { content: "Γ£ô "; color: #198754; }
     .status-icon-warn::before { content: "! "; color: #fd7e14; }
-    .status-icon-danger::before { content: "✕ "; color: #dc3545; }
+    .status-icon-danger::before { content: "Γ£ò "; color: #dc3545; }
 
     body.desktop-app .desktop-only {
       display: inline-flex !important;
@@ -432,7 +432,32 @@
       font-size: 11px;
       letter-spacing: 0.3px;
     }
-  </style>
+
+    /* ── Product Grid ─────────────────────────────────────────── */
+    .pgrid-btn {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 2px; padding: 10px 6px 8px;
+      border: 2px solid #dee2e6; border-radius: 10px; background: #fff;
+      cursor: pointer; transition: transform .1s, box-shadow .1s, border-color .1s, background .1s;
+      text-align: center; min-height: 82px; position: relative;
+      overflow: hidden; user-select: none;
+    }
+    .pgrid-btn:hover { border-color:#0d6efd; background:#f0f5ff; transform:translateY(-2px); box-shadow:0 4px 12px rgba(13,110,253,.18); }
+    .pgrid-btn:active { transform:scale(.96); box-shadow:none; }
+    .pgrid-btn.out-of-stock { border-color:#dee2e6; background:#f8f9fa; opacity:.55; cursor:not-allowed; }
+    .pgrid-btn.low-stock { border-color:#ffc107; background:#fffdf0; }
+    .pgrid-btn .pgrid-name { font-size:12px; font-weight:600; color:#212529; line-height:1.3; word-break:break-word; }
+    .pgrid-btn .pgrid-price { font-size:13px; font-weight:700; color:#0d6efd; }
+    .pgrid-btn .pgrid-stock { font-size:10px; color:#6c757d; }
+    .pgrid-btn .pgrid-stock.low { color:#d97706; }
+    .pgrid-btn .pgrid-stock.out { color:#dc3545; }
+    .pgrid-btn .pgrid-added-flash {
+      position:absolute; inset:0; background:rgba(25,135,84,.22);
+      border-radius:8px; pointer-events:none;
+      animation:pgrid-flash .35s ease-out forwards;
+    }
+    @keyframes pgrid-flash { from{opacity:1} to{opacity:0} }
+    .search-match { background:#fff3cd; border-radius:2px; }  </style>
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -454,7 +479,7 @@
         </div>
         <p class="text-muted mb-1" style="font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">Track Stock. Prevent Loss. Grow Profit.</p>
         <p id="desktop-mode-badge" class="desktop-only d-none badge bg-success desktop-status-badge mb-2">
-          <i class="bi bi-pc-display"></i> Desktop App — Works Offline
+          <i class="bi bi-pc-display"></i> Desktop App &mdash; Works Offline
           <span id="desktop-version" class="ms-1 opacity-75"></span>
         </p>
         <p class="text-muted small">Sign in to your account</p>
@@ -672,7 +697,7 @@
                 <div class="stat-card success" onclick="showSection('analytics')" style="cursor:pointer;" title="Go to Analytics">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
-                      <h3 id="today-revenue" class="mb-0">GH₵0.00</h3>
+                      <h3 id="today-revenue" class="mb-0">GHΓé╡0.00</h3>
                       <p id="revenue-label" class="mb-0">Today's Revenue</p>
                     </div>
                     <i class="bi bi-cash-coin display-4 opacity-50"></i>
@@ -1093,7 +1118,7 @@
                       <input id="edit-product-name" type="text" class="form-control" name="name" autocomplete="off" required>
                     </div>
                     <div class="mb-3">
-                      <label for="edit-product-price" class="form-label">Unit Price (GH₵)</label>
+                      <label for="edit-product-price" class="form-label">Unit Price (GHΓé╡)</label>
                       <input id="edit-product-price" type="number" step="0.01" class="form-control" name="unit_price" autocomplete="off" required>
                     </div>
                     <div class="mb-3">
@@ -1338,12 +1363,12 @@
                             <small class="text-muted">To base unit</small>
                           </div>
                           <div class="col-md-2 admin-only">
-                            <label for="unit-cost-price" class="form-label">Cost Price (GH₵)</label>
+                            <label for="unit-cost-price" class="form-label">Cost Price (GHΓé╡)</label>
                             <input id="unit-cost-price" type="number" step="0.01" class="form-control" name="cost_price" placeholder="0.00" autocomplete="off">
                             <small class="text-muted">Your cost</small>
                           </div>
                           <div class="col-md-2">
-                            <label for="unit-price" class="form-label">Selling Price (GH₵)</label>
+                            <label for="unit-price" class="form-label">Selling Price (GHΓé╡)</label>
                             <input id="unit-price" type="number" step="0.01" class="form-control" name="unit_price" placeholder="0.00" autocomplete="off" required>
                             <small class="text-muted">Customer pays</small>
                           </div>
@@ -1366,8 +1391,8 @@
                           <th>Unit Name</th>
                           <th>Abbr.</th>
                           <th>Conversion</th>
-                          <th class="admin-only">Cost (GH₵)</th>
-                          <th>Price (GH₵)</th>
+                          <th class="admin-only">Cost (GHΓé╡)</th>
+                          <th>Price (GHΓé╡)</th>
                           <th class="admin-only">Profit Margin</th>
                           <th>Base Unit</th>
                           <th>Actions</th>
@@ -1409,7 +1434,7 @@
                     <input type="number" step="0.01" class="form-control" id="edit-unit-conversion" autocomplete="off">
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Unit Price (GH₵)</label>
+                    <label class="form-label">Unit Price (GHΓé╡)</label>
                     <input type="number" step="0.01" class="form-control" id="edit-unit-price" autocomplete="off">
                   </div>
                 </div>
@@ -1479,6 +1504,8 @@
             <div id="shortcuts-bar" class="alert alert-dark py-2 mb-3" style="display:none; font-size:12px;">
               <div class="d-flex flex-wrap gap-3 align-items-center">
                 <strong><i class="bi bi-keyboard"></i> Shortcuts:</strong>
+                <span><kbd>Space</kbd> Walk-in sale</span>
+                <span><kbd>G</kbd> Toggle grid</span>
                 <span><kbd>F1</kbd> Search product</span>
                 <span><kbd>Enter</kbd> Add item</span>
                 <span><kbd>F2</kbd> Cash received</span>
@@ -1489,20 +1516,28 @@
               </div>
             </div>
 
-            <!-- Quick-Add Frequent Items -->
-            <div id="quick-add-panel" class="card mb-3" style="display:none;">
-              <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <h6 class="mb-0"><i class="bi bi-lightning-fill text-warning"></i> Quick Add — Top Products</h6>
-                <button class="btn btn-sm btn-outline-secondary" onclick="toggleQuickAdd()">Hide</button>
+            <!-- Product Grid Panel -->
+            <div id="product-grid-panel" class="card mb-3">
+              <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h6 class="mb-0"><i class="bi bi-grid-3x3-gap-fill text-primary"></i> Product Grid <span class="badge bg-secondary ms-1" id="grid-product-count" style="font-size:11px;"></span></h6>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <div id="grid-category-tabs" class="d-flex gap-1 flex-wrap"></div>
+                  <input type="text" id="grid-search" class="form-control form-control-sm" style="width:150px;" placeholder="Filter grid..." autocomplete="off" oninput="filterGrid(this.value)">
+                  <button class="btn btn-sm btn-outline-secondary" onclick="toggleProductGrid()" title="Hide grid (G)">
+                    <i class="bi bi-chevron-up" id="grid-chevron"></i>
+                  </button>
+                </div>
               </div>
-              <div class="card-body py-2">
-                <div id="quick-add-buttons" class="d-flex flex-wrap gap-2"></div>
+              <div id="product-grid-body" class="card-body py-2">
+                <div id="product-grid-buttons" class="d-grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));"></div>
+                <div id="product-grid-empty" class="text-muted small text-center py-2" style="display:none;">No products match</div>
               </div>
             </div>
-            <div class="mb-2">
-              <button class="btn btn-sm btn-outline-warning" onclick="toggleQuickAdd()" id="quick-add-toggle-btn">
-                <i class="bi bi-lightning-fill"></i> Quick Add
+            <div class="mb-2 d-flex gap-2 align-items-center">
+              <button class="btn btn-sm btn-primary" onclick="toggleProductGrid()" id="grid-toggle-btn" title="Show/hide product grid (G)">
+                <i class="bi bi-grid-3x3-gap-fill"></i> Product Grid
               </button>
+              <small class="text-muted"><kbd>G</kbd> toggle &nbsp;|&nbsp; <kbd>Space</kbd> walk-in &nbsp;|&nbsp; <kbd>F1</kbd> search</small>
             </div>
 
             <div class="row">
@@ -1526,21 +1561,27 @@
                           <label for="receipt-date" class="form-label">Date</label>
                           <input id="receipt-date" type="date" class="form-control" name="receipt_date" readonly style="background-color: #f8f9fa;" autocomplete="off">
                         </div>
+                        <div class="col-12 mb-1">
+                          <button type="button" class="btn btn-success btn-sm px-3" onclick="setWalkInCustomer()" title="Quick cash sale — skip customer details (Spacebar)">
+                            <i class="bi bi-lightning-fill"></i> Walk-in / Cash Sale
+                          </button>
+                          <small class="text-muted ms-2">For quick cash sales — customer details are optional</small>
+                        </div>
                         <div class="col-md-8">
-                          <label for="customer-name" class="form-label">Customer's Name <span class="text-danger">*</span></label>
+                          <label for="customer-name" class="form-label">Customer's Name <span class="text-muted" style="font-size:12px;">(optional)</span></label>
                           <div class="position-relative">
-                            <input id="customer-name" type="text" class="form-control" name="customer_name" placeholder="Type name or phone to find saved customer..." autocomplete="off" required>
+                            <input id="customer-name" type="text" class="form-control" name="customer_name" placeholder="Type name or phone to find saved customer..." autocomplete="off">
                             <div id="customer-suggestions" class="position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-sm" style="z-index: 1000; max-height: 220px; overflow-y: auto; display: none;"></div>
                           </div>
                           <small class="text-muted">Previously saved customers will appear as you type</small>
                         </div>
                         <div class="col-md-4">
-                          <label for="customer-phone" class="form-label">Phone <span class="text-danger">*</span></label>
-                          <input id="customer-phone" type="tel" class="form-control" name="customer_phone" placeholder="Customer phone" autocomplete="tel" required>
+                          <label for="customer-phone" class="form-label">Phone <span class="text-muted" style="font-size:12px;">(optional)</span></label>
+                          <input id="customer-phone" type="tel" class="form-control" name="customer_phone" placeholder="Customer phone" autocomplete="tel">
                         </div>
                         <div class="col-12">
-                          <label for="customer-address" class="form-label">Address <span class="text-danger">*</span></label>
-                          <textarea id="customer-address" class="form-control" name="customer_address" rows="2" placeholder="Customer address" autocomplete="street-address" required></textarea>
+                          <label for="customer-address" class="form-label">Address <span class="text-muted" style="font-size:12px;">(optional)</span></label>
+                          <textarea id="customer-address" class="form-control" name="customer_address" rows="2" placeholder="Customer address" autocomplete="street-address"></textarea>
                         </div>
                       </div>
 
@@ -1642,7 +1683,7 @@
                                 style="font-size: 18px; font-weight: bold; text-align: center;"
                                 step="0.01" min="0" placeholder="0.00" oninput="calculateChange()">
                               <select id="discount-type" class="form-select" style="max-width: 110px; font-weight: bold;" onchange="calculateChange()">
-                                <option value="fixed">GH₵ Fixed</option>
+                                <option value="fixed">GHΓé╡ Fixed</option>
                                 <option value="percent">% Percent</option>
                               </select>
                             </div>
@@ -1688,7 +1729,7 @@
                               <span style="font-size: 14px; color: #6c757d; font-weight: normal; margin-left: 10px;">Ctrl+M</span>
                             </label>
                             <div class="input-group input-group-lg">
-                              <span class="input-group-text" style="font-size: 24px; font-weight: bold; background-color: #f8f9fa; border-right: none;">GH₵</span>
+                              <span class="input-group-text" style="font-size: 24px; font-weight: bold; background-color: #f8f9fa; border-right: none;">GHΓé╡</span>
                               <input type="number" id="cash-received" class="form-control"
                                 style="font-size: 32px; font-weight: bold; border-left: none; text-align: center; padding: 20px;"
                                 step="0.01" min="0" placeholder="0.00"
@@ -1703,19 +1744,19 @@
                                 <div class="col-6">
                                   <div style="text-align: left;">
                                     <div style="font-size: 18px; font-weight: 600; color: #2c3e50; margin-bottom: 5px;" id="change-label">Change to Give:</div>
-                                    <div id="receipt-change" style="font-size: 36px; font-weight: bold; color: #28a745;">GH₵0.00</div>
+                                    <div id="receipt-change" style="font-size: 36px; font-weight: bold; color: #28a745;">GHΓé╡0.00</div>
                                   </div>
                                 </div>
                                 <div class="col-6">
                                   <div style="text-align: right;">
                                     <div style="font-size: 14px; color: #6c757d; margin-bottom: 5px;">
-                                      Subtotal: <span id="receipt-subtotal" style="font-weight:bold;">GH₵0.00</span>
+                                      Subtotal: <span id="receipt-subtotal" style="font-weight:bold;">GHΓé╡0.00</span>
                                     </div>
                                     <div style="font-size: 14px; color: #dc3545; margin-bottom: 5px;">
-                                      Discount: <span id="receipt-discount-display" style="font-weight:bold;">GH₵0.00</span>
+                                      Discount: <span id="receipt-discount-display" style="font-weight:bold;">GHΓé╡0.00</span>
                                     </div>
                                     <div style="font-size: 14px; color: #6c757d; margin-bottom: 5px;">Total Amount Due:</div>
-                                    <div id="receipt-total" style="font-size: 28px; font-weight: bold; color: #2c3e50;">GH₵0.00</div>
+                                    <div id="receipt-total" style="font-size: 28px; font-weight: bold; color: #2c3e50;">GHΓé╡0.00</div>
                                   </div>
                                 </div>
                               </div>
@@ -1903,7 +1944,7 @@
                 <div class="stat-card success">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
-                      <h3 id="analytics-revenue" class="mb-0">GH₵0.00</h3>
+                      <h3 id="analytics-revenue" class="mb-0">GHΓé╡0.00</h3>
                       <p class="mb-0">Today's Revenue</p>
                     </div>
                     <i class="bi bi-cash-coin display-4 opacity-50"></i>
@@ -1914,7 +1955,7 @@
                 <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
-                      <h3 id="analytics-profit" class="mb-0">GH₵0.00</h3>
+                      <h3 id="analytics-profit" class="mb-0">GHΓé╡0.00</h3>
                       <p class="mb-0">Today's Profit</p>
                     </div>
                     <i class="bi bi-graph-up-arrow display-4 opacity-50"></i>
@@ -2098,7 +2139,7 @@
                           <div class="col-md-2">
                             <select class="form-select form-select-sm" id="profit-margin-filter" onchange="filterProfitAnalysisTable()">
                               <option value="all">All Margins</option>
-                              <option value="high">High (≥20%)</option>
+                              <option value="high">High (ΓëÑ20%)</option>
                               <option value="medium">Medium (10-19%)</option>
                               <option value="low">Low (0-9%)</option>
                               <option value="negative">Negative (<0%)</option>
@@ -2200,7 +2241,7 @@
                         <h6 class="mb-0"><i class="bi bi-calendar-x"></i> Estimated Expiry Loss</h6>
                       </div>
                       <div class="card-body text-center">
-                        <h2 id="loss-expiry" class="text-danger">GH₵0.00</h2>
+                        <h2 id="loss-expiry" class="text-danger">GHΓé╡0.00</h2>
                         <small class="text-muted">Cost value of stock removed due to expiry</small>
                       </div>
                     </div>
@@ -2211,7 +2252,7 @@
                         <h6 class="mb-0"><i class="bi bi-shield-exclamation"></i> Estimated Theft / Unexplained Loss</h6>
                       </div>
                       <div class="card-body text-center">
-                        <h2 id="loss-theft" class="text-warning">GH₵0.00</h2>
+                        <h2 id="loss-theft" class="text-warning">GHΓé╡0.00</h2>
                         <small class="text-muted">Cost value of manually deducted stock</small>
                       </div>
                     </div>
@@ -2465,7 +2506,7 @@
             <div class="modal-dialog">
               <div class="modal-content">
                 <div class="modal-header bg-warning text-dark">
-                  <h5 class="modal-title"><i class="bi bi-tag"></i> Clearance Mode — Apply Bulk Discount</h5>
+                  <h5 class="modal-title"><i class="bi bi-tag"></i> Clearance Mode ΓÇö Apply Bulk Discount</h5>
                   <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -2663,7 +2704,7 @@
             <!-- Tailscale Remote Access Guide -->
             <div class="card">
               <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0"><i class="bi bi-wifi text-primary"></i> Remote Access — Owner Dashboard from Anywhere</h6>
+                <h6 class="mb-0"><i class="bi bi-wifi text-primary"></i> Remote Access ΓÇö Owner Dashboard from Anywhere</h6>
                 <a href="owner.html" target="_blank" class="btn btn-sm btn-primary">
                   <i class="bi bi-phone"></i> Open Owner Dashboard
                 </a>
@@ -2671,7 +2712,7 @@
               <div class="card-body">
                 <div class="alert alert-info mb-3">
                   <i class="bi bi-info-circle"></i>
-                  Use <strong>Tailscale</strong> (free) to access the owner dashboard from your phone anywhere — even outside the shop network.
+                  Use <strong>Tailscale</strong> (free) to access the owner dashboard from your phone anywhere ΓÇö even outside the shop network.
                 </div>
                 <div class="row g-3">
                   <div class="col-md-4">
@@ -2682,7 +2723,7 @@
                           <li>Go to <strong>tailscale.com</strong></li>
                           <li>Create a free account</li>
                           <li>Download & install Tailscale for Windows</li>
-                          <li>Sign in — note your <strong>Tailscale IP</strong> (100.x.x.x)</li>
+                          <li>Sign in ΓÇö note your <strong>Tailscale IP</strong> (100.x.x.x)</li>
                         </ol>
                       </div>
                     </div>
@@ -2745,7 +2786,7 @@
               <div class="col-md-3">
                 <div class="stat-card danger">
                   <div class="d-flex justify-content-between align-items-center">
-                    <div><h3 id="pred-critical" class="mb-0">0</h3><p class="mb-0">Finish in ≤3 Days</p></div>
+                    <div><h3 id="pred-critical" class="mb-0">0</h3><p class="mb-0">Finish in Γëñ3 Days</p></div>
                     <i class="bi bi-exclamation-triangle display-4 opacity-50"></i>
                   </div>
                 </div>
@@ -2753,7 +2794,7 @@
               <div class="col-md-3">
                 <div class="stat-card warning">
                   <div class="d-flex justify-content-between align-items-center">
-                    <div><h3 id="pred-urgent" class="mb-0">0</h3><p class="mb-0">Finish in ≤7 Days</p></div>
+                    <div><h3 id="pred-urgent" class="mb-0">0</h3><p class="mb-0">Finish in Γëñ7 Days</p></div>
                     <i class="bi bi-clock display-4 opacity-50"></i>
                   </div>
                 </div>
@@ -2761,7 +2802,7 @@
               <div class="col-md-3">
                 <div class="stat-card info">
                   <div class="d-flex justify-content-between align-items-center">
-                    <div><h3 id="pred-watch" class="mb-0">0</h3><p class="mb-0">Watch (≤30 Days)</p></div>
+                    <div><h3 id="pred-watch" class="mb-0">0</h3><p class="mb-0">Watch (Γëñ30 Days)</p></div>
                     <i class="bi bi-eye display-4 opacity-50"></i>
                   </div>
                 </div>
@@ -2774,10 +2815,10 @@
                 <select class="form-select form-select-sm" id="pred-filter" onchange="filterPredictions()" style="width:auto;">
                   <option value="all">All Flagged</option>
                   <option value="out_of_stock">Out of Stock</option>
-                  <option value="critical">Critical (≤3 days)</option>
-                  <option value="urgent">Urgent (≤7 days)</option>
-                  <option value="low">Low (≤14 days)</option>
-                  <option value="watch">Watch (≤30 days)</option>
+                  <option value="critical">Critical (Γëñ3 days)</option>
+                  <option value="urgent">Urgent (Γëñ7 days)</option>
+                  <option value="low">Low (Γëñ14 days)</option>
+                  <option value="watch">Watch (Γëñ30 days)</option>
                 </select>
               </div>
               <div class="card-body p-0">
@@ -2868,7 +2909,7 @@
 
             <div class="alert alert-info small mb-3" role="note">
               <i class="bi bi-info-circle"></i>
-              Variance results may reflect data entry errors, unit conversions, or timing differences — not proof of wrongdoing. Review before taking action.
+              Variance results may reflect data entry errors, unit conversions, or timing differences ΓÇö not proof of wrongdoing. Review before taking action.
             </div>
 
             <!-- Tabs -->
@@ -2963,7 +3004,7 @@
                 <div class="col-md-6">
                   <div class="card mb-3">
                     <div class="card-header bg-warning text-dark">
-                      <h6 class="mb-0"><i class="bi bi-cart-x"></i> Unusually Large Receipt Deductions (≥20 units)</h6>
+                      <h6 class="mb-0"><i class="bi bi-cart-x"></i> Unusually Large Receipt Deductions (ΓëÑ20 units)</h6>
                     </div>
                     <div class="card-body p-0">
                       <div class="table-responsive">
@@ -3082,7 +3123,7 @@
                 <div class="stat-card danger">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
-                      <h3 id="credit-total-debt" class="mb-0">GH₵0.00</h3>
+                      <h3 id="credit-total-debt" class="mb-0">GHΓé╡0.00</h3>
                       <p class="mb-0">Total Outstanding Debt</p>
                     </div>
                     <i class="bi bi-exclamation-triangle display-4 opacity-50"></i>
@@ -3204,7 +3245,7 @@
                     <input type="text" class="form-control" id="new-customer-address" autocomplete="off">
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Credit Limit (GH₵) <small class="text-muted">0 = no limit</small></label>
+                    <label class="form-label">Credit Limit (GHΓé╡) <small class="text-muted">0 = no limit</small></label>
                     <input type="number" step="0.01" class="form-control" id="new-customer-credit-limit" value="0" autocomplete="off">
                   </div>
                   <div class="mb-3">
@@ -3236,7 +3277,7 @@
                     <select class="form-select" id="credit-customer-select"></select>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Amount Owed (GH₵) <span class="text-danger">*</span></label>
+                    <label class="form-label">Amount Owed (GHΓé╡) <span class="text-danger">*</span></label>
                     <input type="number" step="0.01" class="form-control" id="credit-amount-owed" autocomplete="off">
                   </div>
                   <div class="mb-3">
@@ -3274,15 +3315,15 @@
                   <div class="row mb-3">
                     <div class="col-md-4">
                       <small class="text-muted">Phone</small>
-                      <div id="detail-customer-phone" class="fw-semibold">—</div>
+                      <div id="detail-customer-phone" class="fw-semibold">ΓÇö</div>
                     </div>
                     <div class="col-md-4">
                       <small class="text-muted">Address</small>
-                      <div id="detail-customer-address" class="fw-semibold">—</div>
+                      <div id="detail-customer-address" class="fw-semibold">ΓÇö</div>
                     </div>
                     <div class="col-md-4">
                       <small class="text-muted">Total Outstanding</small>
-                      <div id="detail-customer-debt" class="fw-semibold text-danger fs-5">GH₵0.00</div>
+                      <div id="detail-customer-debt" class="fw-semibold text-danger fs-5">GHΓé╡0.00</div>
                     </div>
                   </div>
                   <h6>Credit Sales</h6>
@@ -3325,7 +3366,7 @@
                     <strong>Balance:</strong> <span id="pay-balance" class="text-danger fw-bold"></span>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Amount Paying (GH₵) <span class="text-danger">*</span></label>
+                    <label class="form-label">Amount Paying (GHΓé╡) <span class="text-danger">*</span></label>
                     <input type="number" step="0.01" class="form-control" id="pay-amount" autocomplete="off">
                   </div>
                   <div class="mb-3">
@@ -3492,7 +3533,7 @@
     /* eslint-disable */
     /* stylelint-disable */
 
-    // ─── Activity Logger (business actions only; no field-level surveillance) ─
+    // ΓöÇΓöÇΓöÇ Activity Logger (business actions only; no field-level surveillance) ΓöÇ
     const AppLogger = {
       log(category, message, level = 'INFO') {
         if (window.electronAPI && window.electronAPI.writeLog) {
@@ -3522,7 +3563,7 @@
       const id = e.target.id || 'unknown modal';
       AppLogger.info('MODAL', `Modal closed: "${id}"`);
     }, true);
-    // ─────────────────────────────────────────────────────────────────
+    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
     // Global variables
     let currentUser = null;
@@ -3534,7 +3575,7 @@
     let products = [];
     let batches = []; // For expiry tracking
 
-    // ─── Shared dialog helpers (replaces native alert/confirm) ───────────
+    // ΓöÇΓöÇΓöÇ Shared dialog helpers (replaces native alert/confirm) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     // Usage:
     //   await showAlert('Title', 'Message text', 'danger')
     //   const yes = await showConfirm('Title', 'Are you sure?', 'danger', 'Delete', 'Cancel')
@@ -3613,7 +3654,7 @@
         modal.show();
       });
     }
-    // ─────────────────────────────────────────────────────────────────────
+    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     
     // Static company information (loaded from database)
     let COMPANY_INFO = {
@@ -3732,7 +3773,7 @@
     }
 
     function formatCurrency(amount) {
-      return `GH₵${parseFloat(amount).toFixed(2)}`;
+      return `GHΓé╡${parseFloat(amount).toFixed(2)}`;
     }
 
     function formatDate(dateString) {
@@ -3916,7 +3957,7 @@
         const data = await apiCall('api/me.php');
         if (data.authenticated) {
           currentUser = data;
-          // Keep CSRF token fresh — me.php always returns the session token
+          // Keep CSRF token fresh ΓÇö me.php always returns the session token
           if (data.csrf_token) csrfToken = data.csrf_token;
           if (data.must_change_password) {
             showLoginScreen();
@@ -4287,7 +4328,7 @@
               }
             </td>
             <td>
-              ${discount ? `<span class="badge bg-warning text-dark"><i class="bi bi-tag"></i> ${discount}% off</span>` : '<span class="text-muted">—</span>'}
+              ${discount ? `<span class="badge bg-warning text-dark"><i class="bi bi-tag"></i> ${discount}% off</span>` : '<span class="text-muted">ΓÇö</span>'}
             </td>
             <td class="no-print">
               ${currentUser && currentUser.role === 'admin' ? `
@@ -4309,7 +4350,7 @@
     async function deleteAllExpiredBatches() {
       const message = `
         <div class="alert alert-danger">
-          <strong>⚠️ DELETE ALL EXPIRED BATCHES</strong>
+          <strong>ΓÜá∩╕Å DELETE ALL EXPIRED BATCHES</strong>
         </div>
         <p>This will permanently delete <strong>all expired batches</strong> from the system.</p>
         <p><strong>This action will:</strong></p>
@@ -4504,13 +4545,13 @@
         const expired = newCriticalItems.filter(item => item.status === 'expired').length;
         const expiringSoon = newCriticalItems.filter(item => item.status === 'expiring_soon').length;
         
-        let message = '⚠️ EXPIRY ALERT!\n\n';
-        if (expired > 0) message += `🔴 ${expired} batch${expired > 1 ? 'es have' : ' has'} EXPIRED\n`;
-        if (expiringSoon > 0) message += `🟡 ${expiringSoon} batch${expiringSoon > 1 ? 'es are' : ' is'} expiring within 90 days\n`;
+        let message = 'ΓÜá∩╕Å EXPIRY ALERT!\n\n';
+        if (expired > 0) message += `≡ƒö┤ ${expired} batch${expired > 1 ? 'es have' : ' has'} EXPIRED\n`;
+        if (expiringSoon > 0) message += `≡ƒƒí ${expiringSoon} batch${expiringSoon > 1 ? 'es are' : ' is'} expiring within 90 days\n`;
         
         message += '\nProducts:\n';
         newCriticalItems.slice(0, 5).forEach(item => {
-          const icon = item.status === 'expired' ? '🔴' : '🟡';
+          const icon = item.status === 'expired' ? '≡ƒö┤' : '≡ƒƒí';
           message += `${icon} ${item.product_name} - ${item.days_until_expiry} days (${item.quantity} units)\n`;
         });
         
@@ -4615,7 +4656,7 @@
         const tbody = document.getElementById('tbl-stock');
         tbody.innerHTML = '<tr><td colspan="10" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
         
-        // Build query params — pass filters to server so pagination works correctly
+        // Build query params ΓÇö pass filters to server so pagination works correctly
         const params = new URLSearchParams({ page: page, page_size: 100 });
         if (stockSearchTerm) params.append('q', stockSearchTerm);
         if (statusFilter !== 'all') params.append('status', statusFilter);
@@ -4812,7 +4853,7 @@
       }
 
       if (!isAdd && qty > currentStockData.currentQty) {
-        await showAlert('Insufficient Stock', `Cannot remove ${qty} units — only ${currentStockData.currentQty} in stock.`, 'danger');
+        await showAlert('Insufficient Stock', `Cannot remove ${qty} units ΓÇö only ${currentStockData.currentQty} in stock.`, 'danger');
         return;
       }
 
@@ -5117,7 +5158,7 @@
     async function deleteAllProducts() {
       const message = `
         <div class="alert alert-danger">
-          <strong>⚠️ DELETE ALL PRODUCTS WARNING ⚠️</strong>
+          <strong>ΓÜá∩╕Å DELETE ALL PRODUCTS WARNING ΓÜá∩╕Å</strong>
         </div>
         <p>Are you sure you want to delete <strong>ALL products</strong>?</p>
         <p><strong>This action will permanently delete:</strong></p>
@@ -5156,8 +5197,8 @@
       modal.show();
     }
 
-    function downloadCSVTemplate() {
-      // CSV content is embedded directly — works in Electron and browsers
+    async function downloadCSVTemplate() {
+      // CSV content is embedded directly ΓÇö works in Electron and browsers
       // with no dependency on the server serving the file.
       const csvContent = [
         'Product Name,Cost Price,Selling Price,Quantity,Expiry Date',
@@ -5198,7 +5239,7 @@
       }
     }
 
-    function handleCSVUpload(event) {
+    async function handleCSVUpload(event) {
       const file = event.target.files[0];
       
       if (!file) {
@@ -5469,8 +5510,8 @@
       tbody.innerHTML = duplicates.map((dup, index) => `
         <tr data-index="${index}" data-name="${dup.name.replace(/"/g, '&quot;')}">
           <td><strong>${dup.name}</strong></td>
-          <td>GH₵${parseFloat(dup.cost_price).toFixed(2)}</td>
-          <td>GH₵${parseFloat(dup.selling_price).toFixed(2)}</td>
+          <td>GHΓé╡${parseFloat(dup.cost_price).toFixed(2)}</td>
+          <td>GHΓé╡${parseFloat(dup.selling_price).toFixed(2)}</td>
           <td>${dup.quantity}</td>
           <td>
             <select class="form-select form-select-sm dup-action-select" data-index="${index}" onchange="toggleRenameField(${index}, this.value)">
@@ -5801,6 +5842,9 @@
         initializeCustomerSearch();
         // Initialize product search autocomplete with server-side search
         initializeProductSearch();
+
+        // Load product grid (non-blocking)
+        loadProductGrid();
         
       } catch (error) {
         console.error('Error loading products:', error);
@@ -5905,7 +5949,7 @@
                       data-price="${product.unit_price}"
                       data-has-expiry="${product.has_expiry}">
                   <strong>${product.name}</strong> <small class="text-muted">(${product.sku})</small>${expiryBadge}<br>
-                  <small class="text-muted">GH₵${product.unit_price}</small>
+                  <small class="text-muted">GHΓé╡${product.unit_price}</small>
                   <span id="expiry-hint-${product.id}" class="ms-2"></span>
                 </div>`;
               }).join('');
@@ -5922,15 +5966,15 @@
                       hint.innerHTML = '<span class="badge bg-danger" style="font-size:10px;">No valid stock</span>';
                       return;
                     }
-                    const soonest = batches[0]; // FIFO — oldest expiry first
+                    const soonest = batches[0]; // FIFO ΓÇö oldest expiry first
                     const days = soonest.days_until_expiry;
                     const discount = getExpiryDiscountSuggestion(days, soonest.status);
                     let color = 'success', icon = 'check-circle';
                     if (days <= 7)  { color = 'danger';  icon = 'exclamation-triangle'; }
                     else if (days <= 30) { color = 'warning text-dark'; icon = 'clock'; }
                     hint.innerHTML = `<span class="badge bg-${color}" style="font-size:10px;">
-                      <i class="bi bi-${icon}"></i> Sell first: ${days}d left · ${soonest.quantity} units
-                      ${discount ? ` · ${discount}% off suggested` : ''}
+                      <i class="bi bi-${icon}"></i> Sell first: ${days}d left ┬╖ ${soonest.quantity} units
+                      ${discount ? ` ┬╖ ${discount}% off suggested` : ''}
                     </span>`;
                   }).catch(() => {});
                 }
@@ -5973,13 +6017,13 @@
                         
                         // All batches expired - block completely
                         if (goodBatches.length === 0) {
-                          alert(`⛔ CANNOT SELL - ALL STOCK EXPIRED\n\n"${productName}" has no valid stock.\nAll ${expiredBatches.length} batch(es) have expired.\n\nPlease remove expired stock from Expiry Management.`);
+                          alert(`Γ¢ö CANNOT SELL - ALL STOCK EXPIRED\n\n"${productName}" has no valid stock.\nAll ${expiredBatches.length} batch(es) have expired.\n\nPlease remove expired stock from Expiry Management.`);
                           return;
                         }
                         
                         // Some batches expired - warn but allow
                         if (expiredBatches.length > 0) {
-                          const proceed = confirm(`⚠️ EXPIRY WARNING\n\n"${productName}" has ${expiredBatches.length} expired batch(es).\n\nValid stock available: ${totalGoodStock} units\n\nDo you want to proceed with selling from valid stock?`);
+                          const proceed = confirm(`ΓÜá∩╕Å EXPIRY WARNING\n\n"${productName}" has ${expiredBatches.length} expired batch(es).\n\nValid stock available: ${totalGoodStock} units\n\nDo you want to proceed with selling from valid stock?`);
                           if (!proceed) return;
                         }
                       }
@@ -6066,7 +6110,7 @@
         unitSelect.innerHTML = '<option value="">Select unit</option>' +
           units.map(unit => `
             <option value="${unit.id}" data-price="${unit.unit_price}" data-conversion="${unit.conversion_factor}">
-              ${unit.unit_name} (${unit.unit_abbreviation}) - GH₵${unit.unit_price}
+              ${unit.unit_name} (${unit.unit_abbreviation}) - GHΓé╡${unit.unit_price}
             </option>
           `).join('');
         
@@ -6104,29 +6148,6 @@
       
       if (!productId || !unitId || !quantity || quantity <= 0) {
         alert('Please select a product, unit, and enter a valid quantity');
-        return;
-      }
-      
-      // Validate customer information before adding items
-      const customerName = document.querySelector('input[name="customer_name"]').value.trim();
-      const customerPhone = document.querySelector('input[name="customer_phone"]').value.trim();
-      const customerAddress = document.querySelector('textarea[name="customer_address"]').value.trim();
-      
-      if (!customerName) {
-        alert('Please enter customer name before adding items');
-        document.querySelector('input[name="customer_name"]').focus();
-        return;
-      }
-      
-      if (!customerPhone) {
-        alert('Please enter customer phone number before adding items');
-        document.querySelector('input[name="customer_phone"]').focus();
-        return;
-      }
-      
-      if (!customerAddress) {
-        alert('Please enter customer address before adding items');
-        document.querySelector('textarea[name="customer_address"]').focus();
         return;
       }
       
@@ -6389,6 +6410,16 @@
       hideCustomerSuggestions();
       updateReceiptDisplay();
       document.getElementById('receipt-preview').innerHTML = '<p class="text-muted text-center">Add items to see preview</p>';
+    }
+
+    function setWalkInCustomer() {
+      const nameInput  = document.querySelector('input[name="customer_name"]');
+      const phoneInput = document.querySelector('input[name="customer_phone"]');
+      const addrInput  = document.querySelector('textarea[name="customer_address"]');
+      if (nameInput)  nameInput.value  = 'Walk-in Customer';
+      if (phoneInput) phoneInput.value = '';
+      if (addrInput)  addrInput.value  = '';
+      setTimeout(() => document.getElementById('receipt-product-search')?.focus(), 50);
     }
 
     async function loadReceiptHistory(filters = {}) {
@@ -6680,7 +6711,7 @@
               width: 80mm;
               color: #000 !important;
             }
-            /* Force all text to be fully black — critical for thermal printers */
+            /* Force all text to be fully black ΓÇö critical for thermal printers */
             * {
               color: #000 !important;
             }
@@ -6726,7 +6757,32 @@
                 padding: 4mm 3mm;
               }
             }
-          </style>
+        
+    /* ── Product Grid ─────────────────────────────────────────── */
+    .pgrid-btn {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 2px; padding: 10px 6px 8px;
+      border: 2px solid #dee2e6; border-radius: 10px; background: #fff;
+      cursor: pointer; transition: transform .1s, box-shadow .1s, border-color .1s, background .1s;
+      text-align: center; min-height: 82px; position: relative;
+      overflow: hidden; user-select: none;
+    }
+    .pgrid-btn:hover { border-color:#0d6efd; background:#f0f5ff; transform:translateY(-2px); box-shadow:0 4px 12px rgba(13,110,253,.18); }
+    .pgrid-btn:active { transform:scale(.96); box-shadow:none; }
+    .pgrid-btn.out-of-stock { border-color:#dee2e6; background:#f8f9fa; opacity:.55; cursor:not-allowed; }
+    .pgrid-btn.low-stock { border-color:#ffc107; background:#fffdf0; }
+    .pgrid-btn .pgrid-name { font-size:12px; font-weight:600; color:#212529; line-height:1.3; word-break:break-word; }
+    .pgrid-btn .pgrid-price { font-size:13px; font-weight:700; color:#0d6efd; }
+    .pgrid-btn .pgrid-stock { font-size:10px; color:#6c757d; }
+    .pgrid-btn .pgrid-stock.low { color:#d97706; }
+    .pgrid-btn .pgrid-stock.out { color:#dc3545; }
+    .pgrid-btn .pgrid-added-flash {
+      position:absolute; inset:0; background:rgba(25,135,84,.22);
+      border-radius:8px; pointer-events:none;
+      animation:pgrid-flash .35s ease-out forwards;
+    }
+    @keyframes pgrid-flash { from{opacity:1} to{opacity:0} }
+    .search-match { background:#fff3cd; border-radius:2px; }  </style>
         </head>
         <body>
           ${printContent.innerHTML}
@@ -6845,7 +6901,7 @@
       });
     }
 
-    // Intercept every mousedown on the page — if user clicks an input, force-activate it
+    // Intercept every mousedown on the page ΓÇö if user clicks an input, force-activate it
     document.addEventListener('mousedown', function(e) {
       const el = e.target;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
@@ -6859,7 +6915,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
 
-      // 1. Universal fix for ALL modals — focus first input when shown
+      // 1. Universal fix for ALL modals ΓÇö focus first input when shown
       document.querySelectorAll('.modal').forEach(function(modal) {
         modal.addEventListener('shown.bs.modal', function() {
           reactivateInputs(modal);
@@ -6874,7 +6930,7 @@
         });
       });
 
-      // 2. Delete confirmation modal — Enter key + click focus
+      // 2. Delete confirmation modal ΓÇö Enter key + click focus
       const deleteInput = document.getElementById('delete-confirmation-input');
       if (deleteInput) {
         deleteInput.addEventListener('keypress', function(e) {
@@ -6887,7 +6943,7 @@
         });
       }
 
-      // 3. Window focus — re-activate everything visible
+      // 3. Window focus ΓÇö re-activate everything visible
       window.addEventListener('focus', function() {
         // Re-activate all inputs in the currently visible section
         const visibleSection = document.querySelector('.content-section:not(.hidden)');
@@ -6907,7 +6963,7 @@
         }
       });
 
-      // 4. Continuous safety net — re-activate all inputs every 5 seconds
+      // 4. Continuous safety net ΓÇö re-activate all inputs every 5 seconds
       setInterval(function() {
         reactivateInputs(document);
       }, 5000);
@@ -6918,7 +6974,7 @@
     async function deleteReceipt(receiptId, invoiceNumber) {
       const message = `
         <div class="alert alert-danger">
-          <strong>⚠️ DELETE RECEIPT WARNING ⚠️</strong>
+          <strong>ΓÜá∩╕Å DELETE RECEIPT WARNING ΓÜá∩╕Å</strong>
         </div>
         <p>Are you sure you want to delete receipt <strong>"${invoiceNumber}"</strong>?</p>
         <p><strong>This action will:</strong></p>
@@ -6928,7 +6984,7 @@
           <li>This <strong>CANNOT</strong> be undone</li>
         </ul>
         <div class="alert alert-warning">
-          <strong>⚠️ IMPORTANT:</strong> Stock quantities will NOT be restored automatically.<br>
+          <strong>ΓÜá∩╕Å IMPORTANT:</strong> Stock quantities will NOT be restored automatically.<br>
           You may need to manually adjust stock levels if needed.
         </div>
       `;
@@ -6993,7 +7049,7 @@
     async function deleteUser(userId) {
       const message = `
         <div class="alert alert-danger">
-          <strong>⚠️ DELETE USER WARNING ⚠️</strong>
+          <strong>ΓÜá∩╕Å DELETE USER WARNING ΓÜá∩╕Å</strong>
         </div>
         <p>Are you sure you want to delete this user?</p>
         <p><strong>This action will:</strong></p>
@@ -7097,7 +7153,7 @@
       }
     }
 
-    // ─── Log Viewer Functions ─────────────────────────────────────────
+    // ΓöÇΓöÇΓöÇ Log Viewer Functions ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     let allLogLines = [];
 
     async function loadLogs() {
@@ -7203,7 +7259,7 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
     }
-    // ─────────────────────────────────────────────────────────────────
+    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
     // Company settings management
     function formatFileSize(bytes) {
@@ -7746,7 +7802,7 @@
       
       if (marginFilter !== 'all') {
         const marginLabels = {
-          'high': 'High margin (≥20%)',
+          'high': 'High margin (ΓëÑ20%)',
           'medium': 'Medium margin (10-19%)',
           'low': 'Low margin (0-9%)',
           'negative': 'Negative margin (<0%)'
@@ -8208,7 +8264,7 @@
         });
       });
       
-      // Fix Bootstrap tab switching in Electron — use mousedown for ALL tabs globally
+      // Fix Bootstrap tab switching in Electron ΓÇö use mousedown for ALL tabs globally
       document.addEventListener('mousedown', function(e) {
         const btn = e.target.closest('[data-bs-toggle="tab"]');
         if (btn) {
@@ -8290,12 +8346,12 @@
           // Clear the SKU field for next product
           document.querySelector('input[name="sku"]').value = '';
           loadProducts();
-          AppLogger.action('PRODUCT', `Product added: "${productData.name}" | SKU: ${productData.sku} | Price: GH₵${productData.unit_price}`);
+          AppLogger.action('PRODUCT', `Product added: "${productData.name}" | SKU: ${productData.sku} | Price: GHΓé╡${productData.unit_price}`);
           alert('Product added successfully!');
         } catch (error) {
           // Check if it's a duplicate name error
           if (error.message.includes('duplicate_name') || error.message.includes('already exists')) {
-            alert('⚠️ DUPLICATE PRODUCT NAME\n\nA product with the name "' + productData.name + '" already exists in the system.\n\nPlease use a different product name or check the existing product in the Products list.');
+            alert('ΓÜá∩╕Å DUPLICATE PRODUCT NAME\n\nA product with the name "' + productData.name + '" already exists in the system.\n\nPlease use a different product name or check the existing product in the Products list.');
             // Focus back on the product name field
             document.getElementById('product-name').focus();
             document.getElementById('product-name').select();
@@ -8332,7 +8388,7 @@
             return;
           }
           if (cashReceived < total) {
-            alert(`Insufficient payment!\n\nTotal Due: GH₵${total.toFixed(2)}\nReceived: GH₵${cashReceived.toFixed(2)}\nShortfall: GH₵${(total - cashReceived).toFixed(2)}`);
+            alert(`Insufficient payment!\n\nTotal Due: GHΓé╡${total.toFixed(2)}\nReceived: GHΓé╡${cashReceived.toFixed(2)}\nShortfall: GHΓé╡${(total - cashReceived).toFixed(2)}`);
             document.getElementById('cash-received').focus();
             return;
           }
@@ -8340,29 +8396,6 @@
         
         const formData = new FormData(this);
         const receiptData = Object.fromEntries(formData);
-        
-        // Validate customer information
-        const customerName = (receiptData.customer_name || '').trim();
-        const customerPhone = (receiptData.customer_phone || '').trim();
-        const customerAddress = (receiptData.customer_address || '').trim();
-        
-        if (!customerName) {
-          alert('Please enter customer name');
-          document.querySelector('input[name="customer_name"]').focus();
-          return;
-        }
-        
-        if (!customerPhone) {
-          alert('Please enter customer phone number');
-          document.querySelector('input[name="customer_phone"]').focus();
-          return;
-        }
-        
-        if (!customerAddress) {
-          alert('Please enter customer address');
-          document.querySelector('textarea[name="customer_address"]').focus();
-          return;
-        }
         
         // Add static company information
         receiptData.company_name = COMPANY_INFO.name;
@@ -8390,9 +8423,12 @@
           
           // Show success message with options
           const printNow = confirm('Receipt created successfully!\n\nWould you like to view and print it now?');
-          AppLogger.action('RECEIPT', `Receipt created: #${result.invoice_number || result.id} | Total: ${receiptData.items?.length || 0} items | Amount: GH₵${receiptData.items?.reduce((s,i) => s + i.total_price, 0).toFixed(2) || '0.00'} | Customer: ${receiptData.customer_name}`);
+          AppLogger.action('RECEIPT', `Receipt created: #${result.invoice_number || result.id} | Total: ${receiptData.items?.length || 0} items | Amount: GHΓé╡${receiptData.items?.reduce((s,i) => s + i.total_price, 0).toFixed(2) || '0.00'} | Customer: ${receiptData.customer_name}`);
 
           // Auto-create/find customer for every receipt (builds customer database for loyalty)
+          const customerName = (receiptData.customer_name || '').trim();
+          const customerPhone = (receiptData.customer_phone || '').trim();
+          const customerAddress = (receiptData.customer_address || '').trim();
           if (customerName) {
             try {
               const customersData = await apiCall('api/customers.php');
@@ -8468,9 +8504,9 @@
         } catch (error) {
           console.error('Receipt creation error:', error);
           if (error.message.includes('expired_stock') || error.message.includes('all stock has expired')) {
-            alert('⛔ SALE BLOCKED - EXPIRED STOCK\n\n' + error.message);
+            alert('Γ¢ö SALE BLOCKED - EXPIRED STOCK\n\n' + error.message);
           } else if (error.message.includes('insufficient_valid_stock')) {
-            alert('⚠️ INSUFFICIENT VALID STOCK\n\n' + error.message);
+            alert('ΓÜá∩╕Å INSUFFICIENT VALID STOCK\n\n' + error.message);
           } else {
             alert('Failed to create receipt: ' + error.message);
           }
@@ -8850,8 +8886,8 @@
               <td>${m.product_name}</td>
               <td class="text-danger fw-bold">-${m.quantity}</td>
               <td><span class="badge bg-secondary">${m.movement_type}</span></td>
-              <td>${m.done_by || '—'}</td>
-              <td><small>${m.notes || '—'}</small></td>
+              <td>${m.done_by || 'ΓÇö'}</td>
+              <td><small>${m.notes || 'ΓÇö'}</small></td>
             </tr>
           `).join('');
         }
@@ -8867,8 +8903,8 @@
               <td><small>${formatDate(l.created_at)}</small></td>
               <td>${l.product_name}</td>
               <td class="fw-bold">${l.quantity}</td>
-              <td><small>#${l.reference_id || '—'}</small></td>
-              <td>${l.done_by || '—'}</td>
+              <td><small>#${l.reference_id || 'ΓÇö'}</small></td>
+              <td>${l.done_by || 'ΓÇö'}</td>
             </tr>
           `).join('');
         }
@@ -8910,7 +8946,7 @@
           const hrs = data.hours_since_last;
           const color = hrs >= 4 ? 'danger' : hrs >= 2 ? 'warning' : 'success';
           lastSaleDiv.className = `alert alert-${color} mb-3`;
-          lastSaleDiv.innerHTML = `<i class="bi bi-clock"></i> Last sale recorded: <strong>${formatDate(data.last_sale_time)}</strong> — <strong>${hrs} hour${hrs !== 1 ? 's' : ''} ago</strong>`;
+          lastSaleDiv.innerHTML = `<i class="bi bi-clock"></i> Last sale recorded: <strong>${formatDate(data.last_sale_time)}</strong> ΓÇö <strong>${hrs} hour${hrs !== 1 ? 's' : ''} ago</strong>`;
         } else {
           lastSaleDiv.className = 'alert alert-danger mb-3';
           lastSaleDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> <strong>No sales recorded today.</strong>';
@@ -8926,8 +8962,8 @@
         tbody.innerHTML = gaps.map(g => `
           <tr class="${g.severity === 'high' ? 'table-danger' : 'table-warning'}">
             <td><strong>${g.date}</strong></td>
-            <td>${g.from_time ? formatDate(g.from_time) : '—'}</td>
-            <td>${g.to_time ? formatDate(g.to_time) : '—'}</td>
+            <td>${g.from_time ? formatDate(g.from_time) : 'ΓÇö'}</td>
+            <td>${g.to_time ? formatDate(g.to_time) : 'ΓÇö'}</td>
             <td class="fw-bold">${g.gap_hours ? g.gap_hours + ' hrs' : 'All day'}</td>
             <td><span class="badge bg-${g.severity === 'high' ? 'danger' : 'warning text-dark'}">${g.severity.toUpperCase()}</span></td>
           </tr>`).join('');
@@ -9014,68 +9050,165 @@
     }
 
     // ============================================================
-    // ULTRA-FAST POS MODE — Keyboard Shortcuts & Quick Add
-    // ============================================================
+    // ═══════════════════════════════════════════════════════════
+    // PRODUCT GRID  — visual one-click product panel
+    // ═══════════════════════════════════════════════════════════
+    let _gridProducts = [];
+    let _gridVisible  = true;
+    let _gridCategory = 'all';
 
-    function toggleShortcutsBar() {
-      const bar = document.getElementById('shortcuts-bar');
-      bar.style.display = bar.style.display === 'none' ? 'block' : 'none';
-    }
-
-    function toggleQuickAdd() {
-      const panel = document.getElementById('quick-add-panel');
-      const btn   = document.getElementById('quick-add-toggle-btn');
-      const show  = panel.style.display === 'none';
-      panel.style.display = show ? 'block' : 'none';
-      if (show) loadQuickAddButtons();
-    }
-
-    async function loadQuickAddButtons() {
-      const container = document.getElementById('quick-add-buttons');
-      container.innerHTML = '<span class="text-muted small">Loading...</span>';
-      try {
-        // Get top 8 products by total sold from stock movements
-        const data = await apiCall('api/products.php?page=1&pageSize=200');
-        const products = (data.items || []).filter(p => p.total_sold > 0);
-        products.sort((a, b) => b.total_sold - a.total_sold);
-        const top = products.slice(0, 8);
-
-        if (top.length === 0) {
-          // Fallback: just show first 8 products
-          const all = data.items || [];
-          top.push(...all.slice(0, 8));
-        }
-
-        container.innerHTML = top.map((p, i) => `
-          <button class="btn btn-outline-primary btn-sm" 
-                  onclick="quickAddProduct(${p.id}, '${p.name.replace(/'/g,"\\'")}', ${p.unit_price})"
-                  title="Shortcut: Alt+${i+1}">
-            <strong>${i+1}.</strong> ${p.name}
-            <span class="badge bg-light text-dark ms-1">GH₵${p.unit_price}</span>
-          </button>`).join('');
-      } catch(e) {
-        container.innerHTML = '<span class="text-danger small">Failed to load</span>';
+    function toggleProductGrid() {
+      _gridVisible = !_gridVisible;
+      const body    = document.getElementById('product-grid-body');
+      const chevron = document.getElementById('grid-chevron');
+      const btn     = document.getElementById('grid-toggle-btn');
+      if (body)    body.style.display = _gridVisible ? '' : 'none';
+      if (chevron) chevron.className  = _gridVisible ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+      if (btn) {
+        btn.classList.toggle('btn-primary',         _gridVisible);
+        btn.classList.toggle('btn-outline-primary', !_gridVisible);
       }
     }
 
-    async function quickAddProduct(productId, productName, unitPrice) {
-      // Set product in search field and trigger unit load
-      const searchInput = document.getElementById('receipt-product-search');
-      const selectedProductId = document.getElementById('selected-receipt-product-id');
-      searchInput.value = productName;
-      selectedProductId.value = productId;
-      document.getElementById('input-unit-price').value = unitPrice;
-      document.getElementById('receipt-product-suggestions').style.display = 'none';
-      await loadReceiptProductUnits(productId);
-      // Focus quantity for immediate entry
-      setTimeout(() => {
-        const qty = document.getElementById('input-quantity');
-        qty.value = 1;
-        qty.focus();
-        qty.select();
-      }, 150);
+    async function loadProductGrid() {
+      const container  = document.getElementById('product-grid-buttons');
+      const countBadge = document.getElementById('grid-product-count');
+      if (!container) return;
+      container.innerHTML = '<span class="text-muted small p-2">Loading products...</span>';
+      try {
+        const data = await apiCall('api/stock.php?page_size=500');
+        _gridProducts = (data.items || []).filter(p => p.id > 0);
+        _gridProducts.sort((a, b) => {
+          if (b.quantity > 0 && a.quantity <= 0) return 1;
+          if (a.quantity > 0 && b.quantity <= 0) return -1;
+          return a.name.localeCompare(b.name);
+        });
+        if (countBadge) countBadge.textContent = _gridProducts.length + ' products';
+        buildCategoryTabs(_gridProducts);
+        renderGrid(_gridProducts);
+      } catch (e) {
+        container.innerHTML = '<span class="text-danger small p-2">Failed to load products</span>';
+      }
     }
 
+    function buildCategoryTabs(products) {
+      const tabsEl = document.getElementById('grid-category-tabs');
+      if (!tabsEl) return;
+      const freq = {};
+      products.forEach(p => {
+        const word = p.name.trim().split(/\s+/)[0].toLowerCase();
+        freq[word] = (freq[word] || 0) + 1;
+      });
+      const cats = Object.entries(freq)
+        .filter(([, n]) => n >= 2)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6)
+        .map(([w]) => w.charAt(0).toUpperCase() + w.slice(1));
+      let html = '<button class="btn btn-xs btn-primary pgrid-cat-btn px-2 py-1" style="font-size:11px;" data-cat="all" onclick="setGridCategory(\'all\')">All</button>';
+      cats.forEach(cat => {
+        html += '<button class="btn btn-xs btn-outline-secondary pgrid-cat-btn px-2 py-1" style="font-size:11px;" data-cat="' + cat.toLowerCase() + '" onclick="setGridCategory(\'' + cat.toLowerCase() + '\')">' + cat + '</button>';
+      });
+      tabsEl.innerHTML = html;
+    }
+
+    function setGridCategory(cat) {
+      _gridCategory = cat;
+      document.querySelectorAll('.pgrid-cat-btn').forEach(b => {
+        const active = b.dataset.cat === cat;
+        b.className = active
+          ? 'btn btn-xs btn-primary pgrid-cat-btn px-2 py-1'
+          : 'btn btn-xs btn-outline-secondary pgrid-cat-btn px-2 py-1';
+        b.style.fontSize = '11px';
+      });
+      const gs = document.getElementById('grid-search');
+      if (gs) gs.value = '';
+      const filtered = cat === 'all' ? _gridProducts
+        : _gridProducts.filter(p => p.name.toLowerCase().startsWith(cat));
+      renderGrid(filtered);
+    }
+
+    function filterGrid(term) {
+      const q = term.toLowerCase().trim();
+      const base = _gridCategory === 'all' ? _gridProducts
+        : _gridProducts.filter(p => p.name.toLowerCase().startsWith(_gridCategory));
+      renderGrid(q ? base.filter(p => p.name.toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q)) : base, q);
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function escapeRegex(s) {
+      return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function renderGrid(products, highlight) {
+      const container = document.getElementById('product-grid-buttons');
+      const empty     = document.getElementById('product-grid-empty');
+      if (!container) return;
+      if (products.length === 0) {
+        container.innerHTML = '';
+        if (empty) empty.style.display = '';
+        return;
+      }
+      if (empty) empty.style.display = 'none';
+      container.innerHTML = products.map(p => {
+        const qty   = parseInt(p.quantity) || 0;
+        const price = parseFloat(p.unit_price) || 0;
+        const oos   = qty <= 0;
+        const low   = !oos && qty <= (parseInt(p.reorder_point) || 10);
+        const cls   = oos ? 'pgrid-btn out-of-stock' : low ? 'pgrid-btn low-stock' : 'pgrid-btn';
+        const sCls  = oos ? 'pgrid-stock out' : low ? 'pgrid-stock low' : 'pgrid-stock';
+        const sLbl  = oos ? '\u2298 Out of stock' : low ? '\u26a0 ' + qty + ' left' : qty + ' in stock';
+        let name = escapeHtml(p.name);
+        if (highlight) {
+          name = name.replace(new RegExp('(' + escapeRegex(highlight) + ')', 'gi'), '<mark class="search-match">$1</mark>');
+        }
+        const click = oos ? '' : 'onclick="gridAddProduct(' + p.id + ')"';
+        return '<button class="' + cls + '" ' + click + (oos ? ' disabled' : '') + ' data-product-id="' + p.id + '" title="' + escapeHtml(p.name) + ' \u2014 GH\u20b5' + price.toFixed(2) + '">'
+          + '<span class="pgrid-name">' + name + '</span>'
+          + '<span class="pgrid-price">GH\u20b5' + price.toFixed(2) + '</span>'
+          + '<span class="' + sCls + '">' + sLbl + '</span>'
+          + '</button>';
+      }).join('');
+    }
+
+    async function gridAddProduct(productId) {
+      const product = _gridProducts.find(p => p.id === productId);
+      if (!product) return;
+      const btn = document.querySelector('[data-product-id="' + productId + '"]');
+      if (btn) {
+        const flash = document.createElement('div');
+        flash.className = 'pgrid-added-flash';
+        btn.appendChild(flash);
+        setTimeout(() => flash.remove(), 400);
+      }
+      const searchInput       = document.getElementById('receipt-product-search');
+      const selectedProductId = document.getElementById('selected-receipt-product-id');
+      searchInput.value       = product.name;
+      selectedProductId.value = productId;
+      document.getElementById('input-unit-price').value = product.unit_price;
+      document.getElementById('receipt-product-suggestions').style.display = 'none';
+      await loadReceiptProductUnits(productId);
+      setTimeout(() => {
+        const unitSelect = document.getElementById('select-unit');
+        const qty        = document.getElementById('input-quantity');
+        qty.value = 1;
+        if (unitSelect.options.length <= 2) {
+          addReceiptItem();
+          searchInput.value = '';
+          selectedProductId.value = '';
+          unitSelect.disabled = true;
+          document.getElementById('receipt-product-search').focus();
+        } else {
+          qty.focus(); qty.select();
+        }
+      }, 120);
+    }
+
+    // Compatibility shims so any old references still work
+    function toggleQuickAdd()           { toggleProductGrid(); }
+    async function loadQuickAddButtons(){ await loadProductGrid(); }
+    async function quickAddProduct(id)  { await gridAddProduct(id); }
     // Global keyboard shortcuts for receipt section
     document.addEventListener('keydown', function(e) {
       // Only active when receipt section is visible
@@ -9137,6 +9270,13 @@
           break;
         case '3':
           if (!isTyping) { e.preventDefault(); selectPaymentMethod('credit'); }
+          break;
+        case ' ':
+          if (!isTyping) { e.preventDefault(); setWalkInCustomer(); }
+          break;
+        case 'g':
+        case 'G':
+          if (!isTyping) { e.preventDefault(); toggleProductGrid(); }
           break;
       }
 
@@ -9205,7 +9345,7 @@
       }
     }
 
-    // ── Clearance Mode ────────────────────────────────────────────
+    // ΓöÇΓöÇ Clearance Mode ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     let clearanceProducts = [];
 
     function openClearanceModeModal() {
@@ -9252,7 +9392,7 @@
             ${clearanceProducts.map(p => `
               <li class="list-group-item d-flex justify-content-between py-1">
                 <span>${p.name}</span>
-                <span class="text-muted">${p.days} days · ${p.qty} units</span>
+                <span class="text-muted">${p.days} days ┬╖ ${p.qty} units</span>
               </li>`).join('')}
           </ul>`;
         document.getElementById('clearance-apply-btn').style.display = 'inline-block';
@@ -9284,7 +9424,7 @@
       }
 
       bootstrap.Modal.getInstance(document.getElementById('clearanceModeModal'))?.hide();
-      alert(`Clearance discount applied!\n✅ ${success} product(s) updated${failed > 0 ? `\n❌ ${failed} failed` : ''}`);
+      alert(`Clearance discount applied!\nΓ£à ${success} product(s) updated${failed > 0 ? `\nΓ¥î ${failed} failed` : ''}`);
       loadBatches('all');
     }
 
@@ -9324,12 +9464,12 @@
         tbody.innerHTML = debtors.map(d => `
           <tr>
             <td><strong>${d.name}</strong></td>
-            <td>${d.phone || '—'}</td>
+            <td>${d.phone || 'ΓÇö'}</td>
             <td><span class="badge bg-secondary">${d.total_credit_sales}</span></td>
             <td>${formatCurrency(d.total_owed)}</td>
             <td class="text-success">${formatCurrency(d.total_paid)}</td>
             <td class="text-danger fw-bold">${formatCurrency(d.total_balance)}</td>
-            <td><small>${d.last_sale_date ? formatDate(d.last_sale_date) : '—'}</small></td>
+            <td><small>${d.last_sale_date ? formatDate(d.last_sale_date) : 'ΓÇö'}</small></td>
             <td>
               <button class="btn btn-sm btn-primary" onclick="viewCustomerDetail(${d.id})">
                 <i class="bi bi-eye"></i> View
@@ -9362,10 +9502,10 @@
       tbody.innerHTML = customers.map(c => `
         <tr>
           <td><strong>${c.name}</strong></td>
-          <td>${c.phone || '—'}</td>
-          <td>${c.address || '—'}</td>
+          <td>${c.phone || 'ΓÇö'}</td>
+          <td>${c.address || 'ΓÇö'}</td>
           <td class="${c.total_debt != null && parseFloat(c.total_debt) > 0 ? 'text-danger fw-bold' : 'text-success'}">
-            ${c.total_debt != null ? formatCurrency(c.total_debt) : '—'}
+            ${c.total_debt != null ? formatCurrency(c.total_debt) : 'ΓÇö'}
           </td>
           <td>
             <button class="btn btn-sm btn-primary me-1" onclick="viewCustomerDetail(${c.id})">
@@ -9410,7 +9550,7 @@
       }
     }
 
-    // ── Add Customer ─────────────────────────────────────────────
+    // ΓöÇΓöÇ Add Customer ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     function openAddCustomerModal() {
       document.getElementById('new-customer-name').value = '';
       document.getElementById('new-customer-phone').value = '';
@@ -9442,7 +9582,7 @@
       }
     }
 
-    // ── Edit Customer ─────────────────────────────────────────────
+    // ΓöÇΓöÇ Edit Customer ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     async function openEditCustomerModal(id) {
       const customer = allCustomers.find(c => c.id === id);
       if (!customer) return;
@@ -9490,7 +9630,7 @@
       } catch (e) { alert('Failed to delete: ' + e.message); }
     }
 
-    // ── Record Credit Sale ────────────────────────────────────────
+    // ΓöÇΓöÇ Record Credit Sale ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     async function openRecordCreditModal() {
       // Populate customer dropdown
       const sel = document.getElementById('credit-customer-select');
@@ -9525,13 +9665,13 @@
       } catch (e) { alert('Failed to record credit: ' + e.message); }
     }
 
-    // ── Customer Detail ───────────────────────────────────────────
+    // ΓöÇΓöÇ Customer Detail ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     async function viewCustomerDetail(id) {
       try {
         const customer = await apiCall(`api/customers.php?id=${id}`);
         document.getElementById('detail-customer-name').textContent = customer.name;
-        document.getElementById('detail-customer-phone').textContent = customer.phone || '—';
-        document.getElementById('detail-customer-address').textContent = customer.address || '—';
+        document.getElementById('detail-customer-phone').textContent = customer.phone || 'ΓÇö';
+        document.getElementById('detail-customer-address').textContent = customer.address || 'ΓÇö';
         document.getElementById('detail-customer-debt').textContent = formatCurrency(customer.total_debt);
 
         const sales = customer.credit_sales || [];
@@ -9541,7 +9681,7 @@
         } else {
           tbody.innerHTML = sales.map(s => `
             <tr>
-              <td>${s.invoice_number || '—'}</td>
+              <td>${s.invoice_number || 'ΓÇö'}</td>
               <td><small>${formatDate(s.sale_date)}</small></td>
               <td>${formatCurrency(s.amount_owed)}</td>
               <td class="text-success">${formatCurrency(s.amount_paid)}</td>
@@ -9565,7 +9705,7 @@
       } catch (e) { alert('Failed to load customer: ' + e.message); }
     }
 
-    // ── Record Payment ────────────────────────────────────────────
+    // ΓöÇΓöÇ Record Payment ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     function openPaymentModal(creditSaleId, invoiceNumber, balance) {
       document.getElementById('pay-credit-sale-id').value = creditSaleId;
       document.getElementById('pay-invoice-number').textContent = invoiceNumber;
@@ -9604,7 +9744,7 @@
   </script>
   <!-- End of JavaScript -->
 
-  <!-- ── Shared Alert/Confirm Modal (replaces all native alert/confirm calls) ── -->
+  <!-- ΓöÇΓöÇ Shared Alert/Confirm Modal (replaces all native alert/confirm calls) ΓöÇΓöÇ -->
   <div class="modal fade" id="appDialogModal" tabindex="-1"
        aria-labelledby="appDialogModalTitle" aria-modal="true" role="dialog">
     <div class="modal-dialog modal-dialog-centered">

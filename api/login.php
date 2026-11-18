@@ -7,6 +7,7 @@ require_once __DIR__ . '/../src/rate_limit.php';
 require_once __DIR__ . '/../src/csrf.php';
 
 header('Content-Type: application/json');
+$pdo = get_pdo();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'POST') {
