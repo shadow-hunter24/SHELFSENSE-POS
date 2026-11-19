@@ -3308,7 +3308,7 @@
                           <th>Total Owed</th>
                           <th>Total Paid</th>
                           <th>Balance</th>
-                          <th>Last Sale</th>
+                          <th>Last Sale / Age</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
@@ -5044,6 +5044,14 @@
       if (!isAdd && qty > currentStockData.currentQty) {
         await showAlert('Insufficient Stock', `Cannot remove ${qty} units — only ${currentStockData.currentQty} in stock.`, 'danger');
         return;
+      }
+
+      // Confirm reduction with admin
+      if (!isAdd) {
+        const yes = await showConfirm('Confirm Stock Reduction',
+          `Remove <strong>${qty} units</strong> from <strong>${escapeHtml(currentStockData.productName)}</strong>?<br><br>Reason: ${escapeHtml(notes)}<br><br>This will be recorded in the audit trail.`,
+          'danger', 'Remove Stock', 'Cancel');
+        if (!yes) return;
       }
 
       // Validate batch fields for expiry-tracked products when adding
@@ -7384,9 +7392,9 @@
         // Close modal and refresh
         bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
         loadUsers();
-        alert('User updated successfully!');
+        showToast('Success', 'User updated successfully.', 'success');
       } catch (error) {
-        alert('Failed to update user: ' + error.message);
+        await showAlert('Error', 'Failed to update user: ' + (error.message || 'Unknown error'), 'danger');
       }
     }
 
@@ -8712,12 +8720,16 @@
         
         if (paymentMethod === 'cash') {
           if (!cashReceived || cashReceived <= 0) {
-            alert('Please enter the amount received from the customer');
+            await showAlert('Amount Required', 'Please enter the amount received from the customer.', 'warning');
             document.getElementById('cash-received').focus();
             return;
           }
           if (cashReceived < total) {
-            alert(`Insufficient payment!\n\nTotal Due: GH₵${total.toFixed(2)}\nReceived: GH₵${cashReceived.toFixed(2)}\nShortfall: GH₵${(total - cashReceived).toFixed(2)}`);
+            await showAlert('Insufficient Payment',
+              `Total Due: <strong>GH₵${total.toFixed(2)}</strong><br>
+               Received: <strong>GH₵${cashReceived.toFixed(2)}</strong><br>
+               Shortfall: <strong class="text-danger">GH₵${(total - cashReceived).toFixed(2)}</strong>`,
+              'danger');
             document.getElementById('cash-received').focus();
             return;
           }
@@ -8730,7 +8742,7 @@
         const receiptDate = receiptData.receipt_date || new Date().toISOString().split('T')[0];
         const today = new Date().toISOString().split('T')[0];
         if (receiptDate > today) {
-          alert('Receipt date cannot be in the future.');
+          await showAlert('Invalid Date', 'Receipt date cannot be in the future.', 'warning');
           document.getElementById('receipt-date').focus();
           return;
         }
@@ -8755,13 +8767,30 @@
         receiptData.change_given = paymentMethod === 'credit' ? 0 : Math.max(0, cashReceived - total);
         
         try {
+          // Show a brief summary and ask for confirmation before submitting
+          const itemSummary = receiptItems.slice(0, 3).map(i => `• ${i.product_name} x${i.quantity}`).join('\n');
+          const moreLine = receiptItems.length > 3 ? `\n• ...and ${receiptItems.length - 3} more item(s)` : '';
+          const customerDisplay = (receiptData.customer_name || 'Walk-in').trim();
+          const confirmed = await showConfirm(
+            'Confirm Receipt',
+            `<strong>Customer:</strong> ${escapeHtml(customerDisplay)}<br>
+             <strong>Items:</strong> ${receiptItems.length} item(s)<br>
+             <strong>Total:</strong> ${formatCurrency(total)}<br>
+             <strong>Payment:</strong> ${paymentMethod.replace('_', ' ')}<br><br>
+             Submit this receipt?`,
+            'primary', 'Submit Receipt', 'Go Back'
+          );
+          if (!confirmed) return;
+
           const result = await apiCall('api/receipts.php', {
             method: 'POST',
             body: JSON.stringify(receiptData)
           });
           
-          // Show success message with options
-          const printNow = confirm('Receipt created successfully!\n\nWould you like to view and print it now?');
+          // Show success and ask to print
+          const printNow = await showConfirm('Receipt Created ✔',
+            `Receipt <strong>#${result.invoice_number || result.id}</strong> has been created successfully.<br><br>Would you like to view and print it now?`,
+            'success', 'View & Print', 'Close');
           AppLogger.action('RECEIPT', `Receipt created: #${result.invoice_number || result.id} | Total: ${receiptData.items?.length || 0} items | Amount: GH₵${receiptData.items?.reduce((s,i) => s + i.total_price, 0).toFixed(2) || '0.00'} | Customer: ${receiptData.customer_name}`);
 
           // Auto-create/find customer for every receipt (builds customer database for loyalty)
@@ -9832,22 +9861,28 @@
           return;
         }
 
-        tbody.innerHTML = debtors.map(d => `
-          <tr>
+        tbody.innerHTML = debtors.map(d => {
+          // Calculate days since last sale for aging
+          const daysSince = d.last_sale_date
+            ? Math.floor((Date.now() - new Date(d.last_sale_date).getTime()) / 86400000)
+            : null;
+          const agingClass = daysSince === null ? '' : daysSince >= 30 ? 'text-danger fw-bold' : daysSince >= 14 ? 'text-warning' : 'text-muted';
+          const agingLabel = daysSince === null ? '—' : daysSince === 0 ? 'Today' : `${daysSince}d ago`;
+          return `<tr>
             <td><strong>${d.name}</strong></td>
             <td>${d.phone || '—'}</td>
             <td><span class="badge bg-secondary">${d.total_credit_sales}</span></td>
             <td>${formatCurrency(d.total_owed)}</td>
             <td class="text-success">${formatCurrency(d.total_paid)}</td>
             <td class="text-danger fw-bold">${formatCurrency(d.total_balance)}</td>
-            <td><small>${d.last_sale_date ? formatDate(d.last_sale_date) : '—'}</small></td>
+            <td><small class="${agingClass}">${agingLabel}</small></td>
             <td>
               <button class="btn btn-sm btn-primary" onclick="viewCustomerDetail(${d.id})">
                 <i class="bi bi-eye"></i> View
               </button>
             </td>
-          </tr>
-        `).join('');
+          </tr>`;
+        }).join('');
       } catch (e) {
         console.error('Failed to load debtors:', e);
       }

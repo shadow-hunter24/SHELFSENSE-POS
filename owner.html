@@ -542,15 +542,19 @@ async function loadStaff(){
         </div>
         <div class="sub">${active?'🟢 Active':'🔴 Disabled'}</div>
       </div>
-      <button class="${active?'btn-dark-danger':'btn-dark-success'}" onclick="toggleStaff(${u.id},'${active?'inactive':'active'}',this)">
+      <button class="${active?'btn-dark-danger':'btn-dark-success'}" onclick="toggleStaff(${u.id},'${u.username}','${active?'inactive':'active'}',this)">
         ${active?'Disable':'Enable'}
       </button>
     </div>`;
   }).join('');
 }
 
-async function toggleStaff(userId, newStatus, btn){
-  if(!confirm(`${newStatus==='inactive'?'Disable':'Enable'} this account?`)) return;
+async function toggleStaff(userId, username, newStatus, btn){
+  const action = newStatus === 'inactive' ? 'Disable' : 'Enable';
+  const msg = newStatus === 'inactive'
+    ? 'Disabling "' + username + '" blocks all future logins until re-enabled.'
+    : 'Re-enabling "' + username + '" restores full system access.';
+  if(!confirm(action + ' account for "' + username + '"?\n\n' + msg)) return;
   const d = await api('toggle_staff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId,status:newStatus})});
   if(d?.success) loadStaff();
   else alert(d?.error||'Failed');
