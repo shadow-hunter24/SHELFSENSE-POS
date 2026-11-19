@@ -694,7 +694,7 @@
                 </div>
               </div>
               <div class="col-md-4">
-                <div class="stat-card success" onclick="showSection('analytics')" style="cursor:pointer;" title="Go to Analytics">
+                <div class="stat-card success admin-only" onclick="showSection('analytics')" style="cursor:pointer;" title="Go to Analytics">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
                       <h3 id="today-revenue" class="mb-0">GH₵0.00</h3>
@@ -889,8 +889,8 @@
                     </div>
                   </div>
 
-                  <!-- Add / Reduce toggle (admin only) -->
-                  <div class="mb-3 d-flex gap-2" id="stock-action-toggle">
+                  <!-- Add / Reduce toggle (admin only — regular users can only add) -->
+                  <div class="mb-3 d-flex gap-2 admin-only" id="stock-action-toggle">
                     <button type="button" id="btn-action-add" class="btn btn-success flex-fill active"
                             onclick="setStockAction('add')">
                       <i class="bi bi-plus-circle"></i> Add Stock
@@ -2506,6 +2506,13 @@
                       <label class="form-label">New Password (leave blank to keep current)</label>
                       <input type="password" class="form-control" name="password" placeholder="Enter new password">
                     </div>
+                    <div class="mb-3 form-check">
+                      <input type="checkbox" class="form-check-input" name="must_change_password" value="1" id="edit-user-force-reset">
+                      <label class="form-check-label" for="edit-user-force-reset">
+                        Force password change on next login
+                      </label>
+                      <small class="d-block text-muted">User will be required to set a new password before accessing the system</small>
+                    </div>
                   </form>
                 </div>
                 <div class="modal-footer">
@@ -3325,9 +3332,9 @@
                       <thead class="table-dark">
                         <tr>
                           <th>Name</th>
-                          <th>Phone</th>
-                          <th>Address</th>
-                          <th>Outstanding Debt</th>
+                          <th class="admin-only">Phone</th>
+                          <th class="admin-only">Address</th>
+                          <th class="admin-only">Outstanding Debt</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
@@ -4494,14 +4501,26 @@
 
     // Delete all expired batches at once
     async function deleteAllExpiredBatches() {
+      // Fetch expired count first so the user knows what they're deleting
+      let expiredCount = 0;
+      try {
+        const data = await apiCall('api/batches.php?status=expired');
+        expiredCount = (data.items || []).length;
+      } catch(e) { /* proceed anyway */ }
+
+      if (expiredCount === 0) {
+        await showAlert('No Expired Batches', 'There are no expired batches to delete.', 'info');
+        return;
+      }
+
       const message = `
-        <div class="alert alert-danger">
+        <div class="alert alert-danger mb-3">
           <strong>⚡ DELETE ALL EXPIRED BATCHES</strong>
         </div>
-        <p>This will permanently delete <strong>all expired batches</strong> from the system.</p>
+        <p>This will permanently delete <strong>${expiredCount} expired batch${expiredCount !== 1 ? 'es' : ''}</strong> from the system.</p>
         <p><strong>This action will:</strong></p>
         <ul>
-          <li>Remove all batches past their expiry date</li>
+          <li>Remove all ${expiredCount} batch${expiredCount !== 1 ? 'es' : ''} past their expiry date</li>
           <li>Reduce stock quantities accordingly</li>
           <li>This <strong>CANNOT</strong> be undone</li>
         </ul>
@@ -7353,6 +7372,9 @@
         if (!userData.password) {
           delete userData.password;
         }
+        
+        // Handle force password reset checkbox
+        userData.must_change_password = document.getElementById('edit-user-force-reset').checked ? 1 : 0;
         
         await apiCall(`api/users.php?id=${userId}`, {
           method: 'PUT',

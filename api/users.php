@@ -94,6 +94,11 @@ try {
             $params[] = password_hash((string)$data['password'], PASSWORD_DEFAULT);
             $fields[] = 'must_change_password = 0';
         }
+        // Force password reset on next login (admin can set this)
+        if (isset($data['must_change_password'])) {
+            $fields[] = 'must_change_password = ?';
+            $params[] = (int)$data['must_change_password'] ? 1 : 0;
+        }
         if (empty($fields)) { echo json_encode(['updated' => 0]); exit; }
         $params[] = $id;
         $stmt = $pdo->prepare('UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?');
