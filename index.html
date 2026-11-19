@@ -3808,9 +3808,12 @@
           try { error = await response.json(); } catch (_) { error = {}; }
           console.error('API Error response:', error);
           if (response.status === 401 && (error.reason === 'session_expired' || error.error === 'unauthenticated')) {
+            const wasLoggedIn = currentUser !== null;
             currentUser = null;
             showLoginScreen();
-            showMessage('login-status', 'Your session has expired. Please sign in again.', 'warning');
+            if (wasLoggedIn) {
+              showMessage('login-status', 'Your session has expired. Please sign in again.', 'warning');
+            }
           }
           const err = new Error(error.message || error.error || 'Request failed');
           err.code = error.error;
@@ -3957,7 +3960,7 @@
         const data = await apiCall('api/me.php');
         if (data.authenticated) {
           currentUser = data;
-          // Keep CSRF token fresh ΓÇö me.php always returns the session token
+          // Keep CSRF token fresh — me.php always returns the session token
           if (data.csrf_token) csrfToken = data.csrf_token;
           if (data.must_change_password) {
             showLoginScreen();
@@ -3977,7 +3980,12 @@
           return false;
         } else if (data.reason === 'session_expired') {
           showLoginScreen();
-          showMessage('login-status', 'Your session has expired. Please sign in again.', 'warning');
+          // Only show the "expired" message if the user was previously logged in
+          // during this page session. On a fresh app start currentUser is null,
+          // so we silently show the login screen with no message.
+          if (currentUser !== null) {
+            showMessage('login-status', 'Your session has expired. Please sign in again.', 'warning');
+          }
           return false;
         }
       } catch (error) {
