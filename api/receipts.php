@@ -24,6 +24,28 @@ try {
         $company_name = trim((string)($data['company_name'] ?? ''));
         $company_location = trim((string)($data['company_location'] ?? ''));
         $items = $data['items'] ?? [];
+
+        // Receipt date — admins may backdate, everyone is blocked from future dates
+        $submittedDate = trim((string)($data['receipt_date'] ?? ''));
+        $today = date('Y-m-d');
+        $userRole = $_SESSION['role'] ?? 'user';
+
+        if ($submittedDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $submittedDate)) {
+            if ($submittedDate > $today) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Receipt date cannot be in the future']);
+                exit;
+            }
+            if ($submittedDate < $today && $userRole !== 'admin') {
+                http_response_code(403);
+                echo json_encode(['error' => 'Only administrators can backdate receipts']);
+                exit;
+            }
+            // Use submitted date at start of that day (midnight)
+            $created_at = $submittedDate . ' 00:00:00';
+        } else {
+            $created_at = null; // use DB default (CURRENT_TIMESTAMP)
+        }
         if ($invoice_number === '' || !is_array($items) || count($items) === 0) {
             http_response_code(400);
             echo json_encode(['error' => 'invoice_number and items are required']);
@@ -129,15 +151,26 @@ try {
             $cash_received = isset($data['cash_received']) ? (float)$data['cash_received'] : $total;
             $change_given = isset($data['change_given']) ? (float)$data['change_given'] : 0;
             
-            $insR = $pdo->prepare('INSERT INTO receipts (invoice_number, customer_name, customer_phone, customer_address, dealer_name, company_name, company_location, subtotal, discount, total, total_cost, total_profit, profit_margin, cash_received, change_given, payment_method, payment_reference, created_by, created_by_username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-            $insR->execute([$invoice_number, $customer_name, $customer_phone, $customer_address, $dealer_name, $company_name, $company_location, $subtotal, $discount, $total, $totalCost, $totalProfit, $profitMargin, $cash_received, $change_given, $payment_method, $payment_reference, $_SESSION['user_id'], $_SESSION['username']]);
+            // Build columns/values — conditionally include created_at for backdated receipts
+            if ($created_at !== null) {
+                $insR = $pdo->prepare('INSERT INTO receipts (invoice_number, customer_name, customer_phone, customer_address, dealer_name, company_name, company_location, subtotal, discount, total, total_cost, total_profit, profit_margin, cash_received, change_given, payment_method, payment_reference, created_by, created_by_username, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                $insR->execute([$invoice_number, $customer_name, $customer_phone, $customer_address, $dealer_name, $company_name, $company_location, $subtotal, $discount, $total, $totalCost, $totalProfit, $profitMargin, $cash_received, $change_given, $payment_method, $payment_reference, $_SESSION['user_id'], $_SESSION['username'], $created_at]);
+            } else {
+                $insR = $pdo->prepare('INSERT INTO receipts (invoice_number, customer_name, customer_phone, customer_address, dealer_name, company_name, company_location, subtotal, discount, total, total_cost, total_profit, profit_margin, cash_received, change_given, payment_method, payment_reference, created_by, created_by_username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                $insR->execute([$invoice_number, $customer_name, $customer_phone, $customer_address, $dealer_name, $company_name, $company_location, $subtotal, $discount, $total, $totalCost, $totalProfit, $profitMargin, $cash_received, $change_given, $payment_method, $payment_reference, $_SESSION['user_id'], $_SESSION['username']]);
+            }
             $rid = (int)$pdo->lastInsertId();
 
             // Insert items and deduct stock using FIFO for products with expiry
             $insI = $pdo->prepare('INSERT INTO receipt_items (receipt_id, product_id, product_name, quantity, unit_price, total_price, cost_price, profit, batch_id, expiry_date, unit_id, unit_name, unit_abbreviation, quantity_in_base_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $updS = $pdo->prepare('UPDATE stock SET quantity = quantity - ? WHERE product_id = ?');
             $getStock = $pdo->prepare('SELECT quantity FROM stock WHERE product_id = ?');
-            $recordMovement = $pdo->prepare('INSERT INTO stock_movements (product_id, movement_type, quantity, quantity_before, quantity_after, reference_type, reference_id, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            // Build prepared statements — conditionally include created_at for backdated receipts
+            if ($created_at !== null) {
+                $recordMovement = $pdo->prepare('INSERT INTO stock_movements (product_id, movement_type, quantity, quantity_before, quantity_after, reference_type, reference_id, notes, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            } else {
+                $recordMovement = $pdo->prepare('INSERT INTO stock_movements (product_id, movement_type, quantity, quantity_before, quantity_after, reference_type, reference_id, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            }
             $getProductInfo = $pdo->prepare('SELECT name, has_expiry FROM products WHERE id = ?');
             $getBatches = $pdo->prepare('SELECT id, batch_number, expiry_date, quantity FROM stock_batches WHERE product_id = ? AND quantity > 0 ORDER BY expiry_date ASC');
             $updateBatch = $pdo->prepare('UPDATE stock_batches SET quantity = quantity - ? WHERE id = ?');
@@ -241,8 +274,8 @@ try {
                 // Get quantity after deduction
                 $quantityAfter = $quantityBefore - $quantityInBaseUnit;
                 
-                // Record stock movement
-                $recordMovement->execute([
+                // Record stock movement (with backdated created_at if applicable)
+                $movementParams = [
                     $pid,
                     'deduction',
                     $quantityInBaseUnit,
@@ -252,7 +285,11 @@ try {
                     $rid,
                     "Sold via receipt #{$invoice_number}",
                     $_SESSION['user_id']
-                ]);
+                ];
+                if ($created_at !== null) {
+                    $movementParams[] = $created_at;
+                }
+                $recordMovement->execute($movementParams);
             }
 
             $pdo->commit();

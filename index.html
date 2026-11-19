@@ -1600,8 +1600,9 @@
                           <input id="receipt-invoice-number" type="text" class="form-control" name="invoice_number" readonly style="background-color: #f8f9fa;" autocomplete="off">
                         </div>
                         <div class="col-md-6">
-                          <label for="receipt-date" class="form-label">Date</label>
+                          <label for="receipt-date" class="form-label">Date <span id="receipt-date-admin-note" class="badge bg-warning text-dark ms-1" style="font-size:10px;display:none;"><i class="bi bi-pencil"></i> Backdate</span></label>
                           <input id="receipt-date" type="date" class="form-control" name="receipt_date" readonly style="background-color: #f8f9fa;" autocomplete="off">
+                          <small id="receipt-date-hint" class="text-muted" style="display:none;">Past dates allowed for missed transactions. Future dates blocked.</small>
                         </div>
                         <div class="col-12 mb-1">
                           <button type="button" class="btn btn-success btn-sm px-3" onclick="setWalkInCustomer()" title="Quick cash sale — skip customer details (Spacebar)">
@@ -5915,6 +5916,9 @@
         // Initialize product search autocomplete with server-side search
         initializeProductSearch();
 
+        // Set up the date field based on user role
+        initReceiptDateField();
+
         // Load product grid (non-blocking)
         loadProductGrid();
         
@@ -6492,6 +6496,36 @@
       if (phoneInput) phoneInput.value = '';
       if (addrInput)  addrInput.value  = '';
       setTimeout(() => document.getElementById('receipt-product-search')?.focus(), 50);
+    }
+
+    function initReceiptDateField() {
+      const dateInput = document.getElementById('receipt-date');
+      const adminNote = document.getElementById('receipt-date-admin-note');
+      const hint      = document.getElementById('receipt-date-hint');
+      const today     = new Date().toISOString().split('T')[0];
+
+      // Always set today as the default value
+      dateInput.value = today;
+      // Block future dates for everyone
+      dateInput.max = today;
+
+      const isAdmin = currentUser && currentUser.role === 'admin';
+
+      if (isAdmin) {
+        // Admins can pick any past date (for backdating missed transactions)
+        dateInput.removeAttribute('readonly');
+        dateInput.style.backgroundColor = '';
+        dateInput.style.cursor = 'pointer';
+        if (adminNote) adminNote.style.display = '';
+        if (hint)      hint.style.display      = '';
+      } else {
+        // Regular users locked to today
+        dateInput.setAttribute('readonly', true);
+        dateInput.style.backgroundColor = '#f8f9fa';
+        dateInput.style.cursor = 'default';
+        if (adminNote) adminNote.style.display = 'none';
+        if (hint)      hint.style.display      = 'none';
+      }
     }
 
     async function loadReceiptHistory(filters = {}) {
@@ -8526,7 +8560,17 @@
         
         const formData = new FormData(this);
         const receiptData = Object.fromEntries(formData);
-        
+
+        // Validate the receipt date
+        const receiptDate = receiptData.receipt_date || new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0];
+        if (receiptDate > today) {
+          alert('Receipt date cannot be in the future.');
+          document.getElementById('receipt-date').focus();
+          return;
+        }
+        receiptData.receipt_date = receiptDate;
+
         // Add static company information
         receiptData.company_name = COMPANY_INFO.name;
         receiptData.company_location = COMPANY_INFO.location;
@@ -8627,10 +8671,9 @@
           }
           
           clearReceipt();
-          // Generate new invoice number and set date for next receipt
+          // Generate new invoice number and reset date for next receipt
           document.querySelector('input[name="invoice_number"]').value = generateInvoiceNumber();
-          const today = new Date().toISOString().split('T')[0];
-          document.querySelector('input[name="receipt_date"]').value = today;
+          initReceiptDateField();
         } catch (error) {
           console.error('Receipt creation error:', error);
           if (error.message.includes('expired_stock') || error.message.includes('all stock has expired')) {
