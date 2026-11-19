@@ -247,9 +247,37 @@ try {
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
         $rid  = (int)($data['receipt_id'] ?? 0);
         if ($rid <= 0) { http_response_code(400); echo json_encode(['error' => 'Invalid receipt']); exit; }
+
         $pdo->beginTransaction();
+
+        // 1. Delete linked credit sale + payments (cascade)
+        $pdo->prepare('DELETE FROM credit_sales WHERE receipt_id = ?')->execute([$rid]);
+
+        // 2. Restore stock for each item + record a movement
+        $items = $pdo->prepare('SELECT product_id, quantity_in_base_unit, quantity FROM receipt_items WHERE receipt_id = ?');
+        $items->execute([$rid]);
+        foreach ($items->fetchAll() as $item) {
+            $pid = (int)$item['product_id'];
+            $qty = (float)($item['quantity_in_base_unit'] ?? $item['quantity']);
+            if ($pid <= 0 || $qty <= 0) continue;
+
+            $beforeStmt = $pdo->prepare('SELECT quantity FROM stock WHERE product_id = ?');
+            $beforeStmt->execute([$pid]);
+            $qtyBefore = (int)($beforeStmt->fetchColumn() ?? 0);
+
+            $pdo->prepare('UPDATE stock SET quantity = quantity + ? WHERE product_id = ?')->execute([$qty, $pid]);
+
+            $pdo->prepare('INSERT INTO stock_movements (product_id, movement_type, quantity, quantity_before, quantity_after, reference_type, reference_id, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                ->execute([$pid, 'addition', $qty, $qtyBefore, $qtyBefore + $qty, 'receipt_delete', $rid, 'Stock restored from deleted receipt', $_SESSION['user_id']]);
+        }
+
+        // 3. Delete stock movements linked to this receipt
+        $pdo->prepare('DELETE FROM stock_movements WHERE reference_type = "receipt" AND reference_id = ?')->execute([$rid]);
+
+        // 4. Delete receipt items + receipt
         $pdo->prepare('DELETE FROM receipt_items WHERE receipt_id = ?')->execute([$rid]);
         $pdo->prepare('DELETE FROM receipts WHERE id = ?')->execute([$rid]);
+
         $pdo->commit();
         echo json_encode(['success' => true]);
         exit;

@@ -436,28 +436,58 @@ try {
         try {
             $pdo->beginTransaction();
 
-            // Get receipt items to restore stock before deleting
+            // ── 1. Find and delete any linked credit sale + payments ──────────
+            // The credit_sale links to this receipt via receipt_id.
+            // credit_payments cascade-delete when the credit_sale is deleted.
+            $csStmt = $pdo->prepare('SELECT id, customer_id FROM credit_sales WHERE receipt_id = ?');
+            $csStmt->execute([$receiptId]);
+            $creditSale = $csStmt->fetch();
+
+            if ($creditSale) {
+                // Delete the credit sale (payments cascade automatically)
+                $pdo->prepare('DELETE FROM credit_sales WHERE id = ?')->execute([$creditSale['id']]);
+            }
+
+            // ── 2. Get receipt items to restore stock before deleting ───────
             $items = $pdo->prepare('SELECT product_id, quantity_in_base_unit, quantity FROM receipt_items WHERE receipt_id = ?');
             $items->execute([$receiptId]);
             $receiptItems = $items->fetchAll();
 
-            // Restore stock for each item
+            // Restore stock for each item and record a movement
             foreach ($receiptItems as $item) {
                 $pid = (int)$item['product_id'];
                 $qty = (float)($item['quantity_in_base_unit'] ?? $item['quantity']);
                 if ($pid <= 0 || $qty <= 0) continue;
 
+                // Get current stock before restore
+                $beforeStmt = $pdo->prepare('SELECT quantity FROM stock WHERE product_id = ?');
+                $beforeStmt->execute([$pid]);
+                $qtyBefore = (int)($beforeStmt->fetchColumn() ?? 0);
+                $qtyAfter = $qtyBefore + $qty;
+
                 // Restore stock quantity
                 $pdo->prepare('UPDATE stock SET quantity = quantity + ? WHERE product_id = ?')->execute([$qty, $pid]);
+
+                // Record the restock as a movement (keeps audit trail intact)
+                $pdo->prepare('INSERT INTO stock_movements (product_id, movement_type, quantity, quantity_before, quantity_after, reference_type, reference_id, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                    ->execute([
+                        $pid,
+                        'addition',
+                        $qty,
+                        $qtyBefore,
+                        $qtyAfter,
+                        'receipt_delete',
+                        $receiptId,
+                        'Stock restored from deleted receipt',
+                        $_SESSION['user_id']
+                    ]);
             }
 
-            // Delete stock movements linked to this receipt
+            // ── 3. Delete stock movements linked to this receipt ─────────────
             $pdo->prepare('DELETE FROM stock_movements WHERE reference_type = "receipt" AND reference_id = ?')->execute([$receiptId]);
 
-            // Delete receipt items
+            // ── 4. Delete receipt items and the receipt ──────────────────────
             $pdo->prepare('DELETE FROM receipt_items WHERE receipt_id = ?')->execute([$receiptId]);
-
-            // Delete the receipt
             $stmt = $pdo->prepare('DELETE FROM receipts WHERE id = ?');
             $stmt->execute([$receiptId]);
 
@@ -468,8 +498,39 @@ try {
                 exit;
             }
 
+            // ── 5. Clean up orphaned customers ──────────────────────────────
+            // If the customer from the deleted receipt has no other receipts
+            // and no other credit sales, remove them to keep the database clean.
+            if ($creditSale && $creditSale['customer_id']) {
+                $custId = (int)$creditSale['customer_id'];
+                $otherReceipts = $pdo->prepare('SELECT COUNT(*) FROM receipts WHERE customer_name = (SELECT name FROM customers WHERE id = ?)');
+                // Simpler: check if customer has any remaining credit sales or is referenced
+                $checkStmt = $pdo->prepare('
+                    SELECT
+                      (SELECT COUNT(*) FROM credit_sales WHERE customer_id = ?) AS remaining_debts,
+                      (SELECT COUNT(*) FROM customers WHERE id = ?) AS exists_flag
+                ');
+                $checkStmt->execute([$custId, $custId]);
+                $check = $checkStmt->fetch();
+                if ($check && (int)$check['exists_flag'] > 0 && (int)$check['remaining_debts'] === 0) {
+                    // Customer has no outstanding debts — check if they appear in any other receipt
+                    // by matching on customer name (receipts store name, not customer_id)
+                    $custNameStmt = $pdo->prepare('SELECT name FROM customers WHERE id = ?');
+                    $custNameStmt->execute([$custId]);
+                    $custName = $custNameStmt->fetchColumn();
+                    if ($custName) {
+                        $refCount = $pdo->prepare('SELECT COUNT(*) FROM receipts WHERE customer_name = ?');
+                        $refCount->execute([$custName]);
+                        if ((int)$refCount->fetchColumn() === 0) {
+                            // No remaining references — safe to delete
+                            $pdo->prepare('DELETE FROM customers WHERE id = ?')->execute([$custId]);
+                        }
+                    }
+                }
+            }
+
             $pdo->commit();
-            echo json_encode(['deleted' => true, 'message' => 'Receipt deleted and stock restored successfully']);
+            echo json_encode(['deleted' => true, 'message' => 'Receipt deleted, stock restored, credit sale cleared.']);
         } catch (Throwable $e) {
             $pdo->rollBack();
             http_response_code(500);
