@@ -287,6 +287,26 @@ try {
         }
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) { http_response_code(400); echo json_encode(['error' => 'id required']); exit; }
+
+        // Check for outstanding debt before allowing deletion
+        $debtStmt = $pdo->prepare('SELECT COUNT(*) FROM credit_sales WHERE customer_id = ? AND status != "paid" AND balance > 0');
+        $debtStmt->execute([$id]);
+        $outstandingDebts = (int)$debtStmt->fetchColumn();
+
+        if ($outstandingDebts > 0) {
+            http_response_code(409);
+            $balanceStmt = $pdo->prepare('SELECT COALESCE(SUM(balance), 0) FROM credit_sales WHERE customer_id = ? AND status != "paid"');
+            $balanceStmt->execute([$id]);
+            $totalOwed = (float)$balanceStmt->fetchColumn();
+            echo json_encode([
+                'error' => 'outstanding_debt',
+                'message' => 'Cannot delete a customer with outstanding debt.',
+                'outstanding_count' => $outstandingDebts,
+                'total_owed' => $totalOwed
+            ]);
+            exit;
+        }
+
         $pdo->prepare('DELETE FROM customers WHERE id = ?')->execute([$id]);
         echo json_encode(['success' => true]);
         exit;
