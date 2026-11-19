@@ -697,7 +697,7 @@
                 <div class="stat-card success" onclick="showSection('analytics')" style="cursor:pointer;" title="Go to Analytics">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
-                      <h3 id="today-revenue" class="mb-0">GHΓé╡0.00</h3>
+                      <h3 id="today-revenue" class="mb-0">GH₵0.00</h3>
                       <p id="revenue-label" class="mb-0">Today's Revenue</p>
                     </div>
                     <i class="bi bi-cash-coin display-4 opacity-50"></i>
@@ -1118,7 +1118,7 @@
                       <input id="edit-product-name" type="text" class="form-control" name="name" autocomplete="off" required>
                     </div>
                     <div class="mb-3">
-                      <label for="edit-product-price" class="form-label">Unit Price (GHΓé╡)</label>
+                      <label for="edit-product-price" class="form-label">Unit Price (GH₵)</label>
                       <input id="edit-product-price" type="number" step="0.01" class="form-control" name="unit_price" autocomplete="off" required>
                     </div>
                     <div class="mb-3">
@@ -1363,12 +1363,12 @@
                             <small class="text-muted">To base unit</small>
                           </div>
                           <div class="col-md-2 admin-only">
-                            <label for="unit-cost-price" class="form-label">Cost Price (GHΓé╡)</label>
+                            <label for="unit-cost-price" class="form-label">Cost Price (GH₵)</label>
                             <input id="unit-cost-price" type="number" step="0.01" class="form-control" name="cost_price" placeholder="0.00" autocomplete="off">
                             <small class="text-muted">Your cost</small>
                           </div>
                           <div class="col-md-2">
-                            <label for="unit-price" class="form-label">Selling Price (GHΓé╡)</label>
+                            <label for="unit-price" class="form-label">Selling Price (GH₵)</label>
                             <input id="unit-price" type="number" step="0.01" class="form-control" name="unit_price" placeholder="0.00" autocomplete="off" required>
                             <small class="text-muted">Customer pays</small>
                           </div>
@@ -1391,8 +1391,8 @@
                           <th>Unit Name</th>
                           <th>Abbr.</th>
                           <th>Conversion</th>
-                          <th class="admin-only">Cost (GHΓé╡)</th>
-                          <th>Price (GHΓé╡)</th>
+                          <th class="admin-only">Cost (GH₵)</th>
+                          <th>Price (GH₵)</th>
                           <th class="admin-only">Profit Margin</th>
                           <th>Base Unit</th>
                           <th>Actions</th>
@@ -1434,7 +1434,7 @@
                     <input type="number" step="0.01" class="form-control" id="edit-unit-conversion" autocomplete="off">
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Unit Price (GHΓé╡)</label>
+                    <label class="form-label">Unit Price (GH₵)</label>
                     <input type="number" step="0.01" class="form-control" id="edit-unit-price" autocomplete="off">
                   </div>
                 </div>
@@ -1683,7 +1683,7 @@
                                 style="font-size: 18px; font-weight: bold; text-align: center;"
                                 step="0.01" min="0" placeholder="0.00" oninput="calculateChange()">
                               <select id="discount-type" class="form-select" style="max-width: 110px; font-weight: bold;" onchange="calculateChange()">
-                                <option value="fixed">GHΓé╡ Fixed</option>
+                                <option value="fixed">GH₵ Fixed</option>
                                 <option value="percent">% Percent</option>
                               </select>
                             </div>
@@ -1729,7 +1729,7 @@
                               <span style="font-size: 14px; color: #6c757d; font-weight: normal; margin-left: 10px;">Ctrl+M</span>
                             </label>
                             <div class="input-group input-group-lg">
-                              <span class="input-group-text" style="font-size: 24px; font-weight: bold; background-color: #f8f9fa; border-right: none;">GHΓé╡</span>
+                              <span class="input-group-text" style="font-size: 24px; font-weight: bold; background-color: #f8f9fa; border-right: none;">GH₵</span>
                               <input type="number" id="cash-received" class="form-control"
                                 style="font-size: 32px; font-weight: bold; border-left: none; text-align: center; padding: 20px;"
                                 step="0.01" min="0" placeholder="0.00"
@@ -1744,19 +1744,19 @@
                                 <div class="col-6">
                                   <div style="text-align: left;">
                                     <div style="font-size: 18px; font-weight: 600; color: #2c3e50; margin-bottom: 5px;" id="change-label">Change to Give:</div>
-                                    <div id="receipt-change" style="font-size: 36px; font-weight: bold; color: #28a745;">GHΓé╡0.00</div>
+                                    <div id="receipt-change" style="font-size: 36px; font-weight: bold; color: #28a745;">GH₵0.00</div>
                                   </div>
                                 </div>
                                 <div class="col-6">
                                   <div style="text-align: right;">
                                     <div style="font-size: 14px; color: #6c757d; margin-bottom: 5px;">
-                                      Subtotal: <span id="receipt-subtotal" style="font-weight:bold;">GHΓé╡0.00</span>
+                                      Subtotal: <span id="receipt-subtotal" style="font-weight:bold;">GH₵0.00</span>
                                     </div>
                                     <div style="font-size: 14px; color: #dc3545; margin-bottom: 5px;">
-                                      Discount: <span id="receipt-discount-display" style="font-weight:bold;">GHΓé╡0.00</span>
+                                      Discount: <span id="receipt-discount-display" style="font-weight:bold;">GH₵0.00</span>
                                     </div>
                                     <div style="font-size: 14px; color: #6c757d; margin-bottom: 5px;">Total Amount Due:</div>
-                                    <div id="receipt-total" style="font-size: 28px; font-weight: bold; color: #2c3e50;">GHΓé╡0.00</div>
+                                    <div id="receipt-total" style="font-size: 28px; font-weight: bold; color: #2c3e50;">GH₵0.00</div>
                                   </div>
                                 </div>
                               </div>
@@ -1944,7 +1944,7 @@
                 <div class="stat-card success">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
-                      <h3 id="analytics-revenue" class="mb-0">GHΓé╡0.00</h3>
+                      <h3 id="analytics-revenue" class="mb-0">GH₵0.00</h3>
                       <p class="mb-0">Today's Revenue</p>
                     </div>
                     <i class="bi bi-cash-coin display-4 opacity-50"></i>
@@ -1955,7 +1955,7 @@
                 <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
-                      <h3 id="analytics-profit" class="mb-0">GHΓé╡0.00</h3>
+                      <h3 id="analytics-profit" class="mb-0">GH₵0.00</h3>
                       <p class="mb-0">Today's Profit</p>
                     </div>
                     <i class="bi bi-graph-up-arrow display-4 opacity-50"></i>
@@ -2139,7 +2139,7 @@
                           <div class="col-md-2">
                             <select class="form-select form-select-sm" id="profit-margin-filter" onchange="filterProfitAnalysisTable()">
                               <option value="all">All Margins</option>
-                              <option value="high">High (ΓëÑ20%)</option>
+                              <option value="high">High (≥20%)</option>
                               <option value="medium">Medium (10-19%)</option>
                               <option value="low">Low (0-9%)</option>
                               <option value="negative">Negative (<0%)</option>
@@ -2241,7 +2241,7 @@
                         <h6 class="mb-0"><i class="bi bi-calendar-x"></i> Estimated Expiry Loss</h6>
                       </div>
                       <div class="card-body text-center">
-                        <h2 id="loss-expiry" class="text-danger">GHΓé╡0.00</h2>
+                        <h2 id="loss-expiry" class="text-danger">GH₵0.00</h2>
                         <small class="text-muted">Cost value of stock removed due to expiry</small>
                       </div>
                     </div>
@@ -2252,7 +2252,7 @@
                         <h6 class="mb-0"><i class="bi bi-shield-exclamation"></i> Estimated Theft / Unexplained Loss</h6>
                       </div>
                       <div class="card-body text-center">
-                        <h2 id="loss-theft" class="text-warning">GHΓé╡0.00</h2>
+                        <h2 id="loss-theft" class="text-warning">GH₵0.00</h2>
                         <small class="text-muted">Cost value of manually deducted stock</small>
                       </div>
                     </div>
@@ -2786,7 +2786,7 @@
               <div class="col-md-3">
                 <div class="stat-card danger">
                   <div class="d-flex justify-content-between align-items-center">
-                    <div><h3 id="pred-critical" class="mb-0">0</h3><p class="mb-0">Finish in Γëñ3 Days</p></div>
+                    <div><h3 id="pred-critical" class="mb-0">0</h3><p class="mb-0">Finish in ≤3 Days</p></div>
                     <i class="bi bi-exclamation-triangle display-4 opacity-50"></i>
                   </div>
                 </div>
@@ -2794,7 +2794,7 @@
               <div class="col-md-3">
                 <div class="stat-card warning">
                   <div class="d-flex justify-content-between align-items-center">
-                    <div><h3 id="pred-urgent" class="mb-0">0</h3><p class="mb-0">Finish in Γëñ7 Days</p></div>
+                    <div><h3 id="pred-urgent" class="mb-0">0</h3><p class="mb-0">Finish in ≤7 Days</p></div>
                     <i class="bi bi-clock display-4 opacity-50"></i>
                   </div>
                 </div>
@@ -2802,7 +2802,7 @@
               <div class="col-md-3">
                 <div class="stat-card info">
                   <div class="d-flex justify-content-between align-items-center">
-                    <div><h3 id="pred-watch" class="mb-0">0</h3><p class="mb-0">Watch (Γëñ30 Days)</p></div>
+                    <div><h3 id="pred-watch" class="mb-0">0</h3><p class="mb-0">Watch (≤30 Days)</p></div>
                     <i class="bi bi-eye display-4 opacity-50"></i>
                   </div>
                 </div>
@@ -2815,10 +2815,10 @@
                 <select class="form-select form-select-sm" id="pred-filter" onchange="filterPredictions()" style="width:auto;">
                   <option value="all">All Flagged</option>
                   <option value="out_of_stock">Out of Stock</option>
-                  <option value="critical">Critical (Γëñ3 days)</option>
-                  <option value="urgent">Urgent (Γëñ7 days)</option>
-                  <option value="low">Low (Γëñ14 days)</option>
-                  <option value="watch">Watch (Γëñ30 days)</option>
+                  <option value="critical">Critical (≤3 days)</option>
+                  <option value="urgent">Urgent (≤7 days)</option>
+                  <option value="low">Low (≤14 days)</option>
+                  <option value="watch">Watch (≤30 days)</option>
                 </select>
               </div>
               <div class="card-body p-0">
@@ -3004,7 +3004,7 @@
                 <div class="col-md-6">
                   <div class="card mb-3">
                     <div class="card-header bg-warning text-dark">
-                      <h6 class="mb-0"><i class="bi bi-cart-x"></i> Unusually Large Receipt Deductions (ΓëÑ20 units)</h6>
+                      <h6 class="mb-0"><i class="bi bi-cart-x"></i> Unusually Large Receipt Deductions (≥20 units)</h6>
                     </div>
                     <div class="card-body p-0">
                       <div class="table-responsive">
@@ -3123,7 +3123,7 @@
                 <div class="stat-card danger">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
-                      <h3 id="credit-total-debt" class="mb-0">GHΓé╡0.00</h3>
+                      <h3 id="credit-total-debt" class="mb-0">GH₵0.00</h3>
                       <p class="mb-0">Total Outstanding Debt</p>
                     </div>
                     <i class="bi bi-exclamation-triangle display-4 opacity-50"></i>
@@ -3245,7 +3245,7 @@
                     <input type="text" class="form-control" id="new-customer-address" autocomplete="off">
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Credit Limit (GHΓé╡) <small class="text-muted">0 = no limit</small></label>
+                    <label class="form-label">Credit Limit (GH₵) <small class="text-muted">0 = no limit</small></label>
                     <input type="number" step="0.01" class="form-control" id="new-customer-credit-limit" value="0" autocomplete="off">
                   </div>
                   <div class="mb-3">
@@ -3277,7 +3277,7 @@
                     <select class="form-select" id="credit-customer-select"></select>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Amount Owed (GHΓé╡) <span class="text-danger">*</span></label>
+                    <label class="form-label">Amount Owed (GH₵) <span class="text-danger">*</span></label>
                     <input type="number" step="0.01" class="form-control" id="credit-amount-owed" autocomplete="off">
                   </div>
                   <div class="mb-3">
@@ -3323,7 +3323,7 @@
                     </div>
                     <div class="col-md-4">
                       <small class="text-muted">Total Outstanding</small>
-                      <div id="detail-customer-debt" class="fw-semibold text-danger fs-5">GHΓé╡0.00</div>
+                      <div id="detail-customer-debt" class="fw-semibold text-danger fs-5">GH₵0.00</div>
                     </div>
                   </div>
                   <h6>Credit Sales</h6>
@@ -3366,7 +3366,7 @@
                     <strong>Balance:</strong> <span id="pay-balance" class="text-danger fw-bold"></span>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label">Amount Paying (GHΓé╡) <span class="text-danger">*</span></label>
+                    <label class="form-label">Amount Paying (GH₵) <span class="text-danger">*</span></label>
                     <input type="number" step="0.01" class="form-control" id="pay-amount" autocomplete="off">
                   </div>
                   <div class="mb-3">
@@ -3533,7 +3533,7 @@
     /* eslint-disable */
     /* stylelint-disable */
 
-    // ΓöÇΓöÇΓöÇ Activity Logger (business actions only; no field-level surveillance) ΓöÇ
+    // --- Activity Logger (business actions only; no field-level surveillance) -
     const AppLogger = {
       log(category, message, level = 'INFO') {
         if (window.electronAPI && window.electronAPI.writeLog) {
@@ -3563,7 +3563,7 @@
       const id = e.target.id || 'unknown modal';
       AppLogger.info('MODAL', `Modal closed: "${id}"`);
     }, true);
-    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // -----------------------------------------------------------------
 
     // Global variables
     let currentUser = null;
@@ -3575,7 +3575,7 @@
     let products = [];
     let batches = []; // For expiry tracking
 
-    // ΓöÇΓöÇΓöÇ Shared dialog helpers (replaces native alert/confirm) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // --- Shared dialog helpers (replaces native alert/confirm) -----------
     // Usage:
     //   await showAlert('Title', 'Message text', 'danger')
     //   const yes = await showConfirm('Title', 'Are you sure?', 'danger', 'Delete', 'Cancel')
@@ -3654,7 +3654,7 @@
         modal.show();
       });
     }
-    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ---------------------------------------------------------------------
     
     // Static company information (loaded from database)
     let COMPANY_INFO = {
@@ -3773,7 +3773,7 @@
     }
 
     function formatCurrency(amount) {
-      return `GHΓé╡${parseFloat(amount).toFixed(2)}`;
+      return `GH₵${parseFloat(amount).toFixed(2)}`;
     }
 
     function formatDate(dateString) {
@@ -4350,7 +4350,7 @@
     async function deleteAllExpiredBatches() {
       const message = `
         <div class="alert alert-danger">
-          <strong>ΓÜá∩╕Å DELETE ALL EXPIRED BATCHES</strong>
+          <strong>⚡∩╕Å DELETE ALL EXPIRED BATCHES</strong>
         </div>
         <p>This will permanently delete <strong>all expired batches</strong> from the system.</p>
         <p><strong>This action will:</strong></p>
@@ -4545,7 +4545,7 @@
         const expired = newCriticalItems.filter(item => item.status === 'expired').length;
         const expiringSoon = newCriticalItems.filter(item => item.status === 'expiring_soon').length;
         
-        let message = 'ΓÜá∩╕Å EXPIRY ALERT!\n\n';
+        let message = '⚡∩╕Å EXPIRY ALERT!\n\n';
         if (expired > 0) message += `≡ƒö┤ ${expired} batch${expired > 1 ? 'es have' : ' has'} EXPIRED\n`;
         if (expiringSoon > 0) message += `≡ƒƒí ${expiringSoon} batch${expiringSoon > 1 ? 'es are' : ' is'} expiring within 90 days\n`;
         
@@ -5158,7 +5158,7 @@
     async function deleteAllProducts() {
       const message = `
         <div class="alert alert-danger">
-          <strong>ΓÜá∩╕Å DELETE ALL PRODUCTS WARNING ΓÜá∩╕Å</strong>
+          <strong>⚡∩╕Å DELETE ALL PRODUCTS WARNING ⚡∩╕Å</strong>
         </div>
         <p>Are you sure you want to delete <strong>ALL products</strong>?</p>
         <p><strong>This action will permanently delete:</strong></p>
@@ -5510,8 +5510,8 @@
       tbody.innerHTML = duplicates.map((dup, index) => `
         <tr data-index="${index}" data-name="${dup.name.replace(/"/g, '&quot;')}">
           <td><strong>${dup.name}</strong></td>
-          <td>GHΓé╡${parseFloat(dup.cost_price).toFixed(2)}</td>
-          <td>GHΓé╡${parseFloat(dup.selling_price).toFixed(2)}</td>
+          <td>GH₵${parseFloat(dup.cost_price).toFixed(2)}</td>
+          <td>GH₵${parseFloat(dup.selling_price).toFixed(2)}</td>
           <td>${dup.quantity}</td>
           <td>
             <select class="form-select form-select-sm dup-action-select" data-index="${index}" onchange="toggleRenameField(${index}, this.value)">
@@ -5949,7 +5949,7 @@
                       data-price="${product.unit_price}"
                       data-has-expiry="${product.has_expiry}">
                   <strong>${product.name}</strong> <small class="text-muted">(${product.sku})</small>${expiryBadge}<br>
-                  <small class="text-muted">GHΓé╡${product.unit_price}</small>
+                  <small class="text-muted">GH₵${product.unit_price}</small>
                   <span id="expiry-hint-${product.id}" class="ms-2"></span>
                 </div>`;
               }).join('');
@@ -6023,7 +6023,7 @@
                         
                         // Some batches expired - warn but allow
                         if (expiredBatches.length > 0) {
-                          const proceed = confirm(`ΓÜá∩╕Å EXPIRY WARNING\n\n"${productName}" has ${expiredBatches.length} expired batch(es).\n\nValid stock available: ${totalGoodStock} units\n\nDo you want to proceed with selling from valid stock?`);
+                          const proceed = confirm(`⚡∩╕Å EXPIRY WARNING\n\n"${productName}" has ${expiredBatches.length} expired batch(es).\n\nValid stock available: ${totalGoodStock} units\n\nDo you want to proceed with selling from valid stock?`);
                           if (!proceed) return;
                         }
                       }
@@ -6110,7 +6110,7 @@
         unitSelect.innerHTML = '<option value="">Select unit</option>' +
           units.map(unit => `
             <option value="${unit.id}" data-price="${unit.unit_price}" data-conversion="${unit.conversion_factor}">
-              ${unit.unit_name} (${unit.unit_abbreviation}) - GHΓé╡${unit.unit_price}
+              ${unit.unit_name} (${unit.unit_abbreviation}) - GH₵${unit.unit_price}
             </option>
           `).join('');
         
@@ -6974,7 +6974,7 @@
     async function deleteReceipt(receiptId, invoiceNumber) {
       const message = `
         <div class="alert alert-danger">
-          <strong>ΓÜá∩╕Å DELETE RECEIPT WARNING ΓÜá∩╕Å</strong>
+          <strong>⚡∩╕Å DELETE RECEIPT WARNING ⚡∩╕Å</strong>
         </div>
         <p>Are you sure you want to delete receipt <strong>"${invoiceNumber}"</strong>?</p>
         <p><strong>This action will:</strong></p>
@@ -6984,7 +6984,7 @@
           <li>This <strong>CANNOT</strong> be undone</li>
         </ul>
         <div class="alert alert-warning">
-          <strong>ΓÜá∩╕Å IMPORTANT:</strong> Stock quantities will NOT be restored automatically.<br>
+          <strong>⚡∩╕Å IMPORTANT:</strong> Stock quantities will NOT be restored automatically.<br>
           You may need to manually adjust stock levels if needed.
         </div>
       `;
@@ -7049,7 +7049,7 @@
     async function deleteUser(userId) {
       const message = `
         <div class="alert alert-danger">
-          <strong>ΓÜá∩╕Å DELETE USER WARNING ΓÜá∩╕Å</strong>
+          <strong>⚡∩╕Å DELETE USER WARNING ⚡∩╕Å</strong>
         </div>
         <p>Are you sure you want to delete this user?</p>
         <p><strong>This action will:</strong></p>
@@ -7153,7 +7153,7 @@
       }
     }
 
-    // ΓöÇΓöÇΓöÇ Log Viewer Functions ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // --- Log Viewer Functions -----------------------------------------
     let allLogLines = [];
 
     async function loadLogs() {
@@ -7259,7 +7259,7 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
     }
-    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // -----------------------------------------------------------------
 
     // Company settings management
     function formatFileSize(bytes) {
@@ -7802,7 +7802,7 @@
       
       if (marginFilter !== 'all') {
         const marginLabels = {
-          'high': 'High margin (ΓëÑ20%)',
+          'high': 'High margin (≥20%)',
           'medium': 'Medium margin (10-19%)',
           'low': 'Low margin (0-9%)',
           'negative': 'Negative margin (<0%)'
@@ -8346,12 +8346,12 @@
           // Clear the SKU field for next product
           document.querySelector('input[name="sku"]').value = '';
           loadProducts();
-          AppLogger.action('PRODUCT', `Product added: "${productData.name}" | SKU: ${productData.sku} | Price: GHΓé╡${productData.unit_price}`);
+          AppLogger.action('PRODUCT', `Product added: "${productData.name}" | SKU: ${productData.sku} | Price: GH₵${productData.unit_price}`);
           alert('Product added successfully!');
         } catch (error) {
           // Check if it's a duplicate name error
           if (error.message.includes('duplicate_name') || error.message.includes('already exists')) {
-            alert('ΓÜá∩╕Å DUPLICATE PRODUCT NAME\n\nA product with the name "' + productData.name + '" already exists in the system.\n\nPlease use a different product name or check the existing product in the Products list.');
+            alert('⚡∩╕Å DUPLICATE PRODUCT NAME\n\nA product with the name "' + productData.name + '" already exists in the system.\n\nPlease use a different product name or check the existing product in the Products list.');
             // Focus back on the product name field
             document.getElementById('product-name').focus();
             document.getElementById('product-name').select();
@@ -8388,7 +8388,7 @@
             return;
           }
           if (cashReceived < total) {
-            alert(`Insufficient payment!\n\nTotal Due: GHΓé╡${total.toFixed(2)}\nReceived: GHΓé╡${cashReceived.toFixed(2)}\nShortfall: GHΓé╡${(total - cashReceived).toFixed(2)}`);
+            alert(`Insufficient payment!\n\nTotal Due: GH₵${total.toFixed(2)}\nReceived: GH₵${cashReceived.toFixed(2)}\nShortfall: GH₵${(total - cashReceived).toFixed(2)}`);
             document.getElementById('cash-received').focus();
             return;
           }
@@ -8423,7 +8423,7 @@
           
           // Show success message with options
           const printNow = confirm('Receipt created successfully!\n\nWould you like to view and print it now?');
-          AppLogger.action('RECEIPT', `Receipt created: #${result.invoice_number || result.id} | Total: ${receiptData.items?.length || 0} items | Amount: GHΓé╡${receiptData.items?.reduce((s,i) => s + i.total_price, 0).toFixed(2) || '0.00'} | Customer: ${receiptData.customer_name}`);
+          AppLogger.action('RECEIPT', `Receipt created: #${result.invoice_number || result.id} | Total: ${receiptData.items?.length || 0} items | Amount: GH₵${receiptData.items?.reduce((s,i) => s + i.total_price, 0).toFixed(2) || '0.00'} | Customer: ${receiptData.customer_name}`);
 
           // Auto-create/find customer for every receipt (builds customer database for loyalty)
           const customerName = (receiptData.customer_name || '').trim();
@@ -8506,7 +8506,7 @@
           if (error.message.includes('expired_stock') || error.message.includes('all stock has expired')) {
             alert('Γ¢ö SALE BLOCKED - EXPIRED STOCK\n\n' + error.message);
           } else if (error.message.includes('insufficient_valid_stock')) {
-            alert('ΓÜá∩╕Å INSUFFICIENT VALID STOCK\n\n' + error.message);
+            alert('⚡∩╕Å INSUFFICIENT VALID STOCK\n\n' + error.message);
           } else {
             alert('Failed to create receipt: ' + error.message);
           }
@@ -9345,7 +9345,7 @@
       }
     }
 
-    // ΓöÇΓöÇ Clearance Mode ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // -- Clearance Mode --------------------------------------------
     let clearanceProducts = [];
 
     function openClearanceModeModal() {
@@ -9550,7 +9550,7 @@
       }
     }
 
-    // ΓöÇΓöÇ Add Customer ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // -- Add Customer ---------------------------------------------
     function openAddCustomerModal() {
       document.getElementById('new-customer-name').value = '';
       document.getElementById('new-customer-phone').value = '';
@@ -9582,7 +9582,7 @@
       }
     }
 
-    // ΓöÇΓöÇ Edit Customer ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // -- Edit Customer ---------------------------------------------
     async function openEditCustomerModal(id) {
       const customer = allCustomers.find(c => c.id === id);
       if (!customer) return;
@@ -9630,7 +9630,7 @@
       } catch (e) { alert('Failed to delete: ' + e.message); }
     }
 
-    // ΓöÇΓöÇ Record Credit Sale ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // -- Record Credit Sale ----------------------------------------
     async function openRecordCreditModal() {
       // Populate customer dropdown
       const sel = document.getElementById('credit-customer-select');
@@ -9665,7 +9665,7 @@
       } catch (e) { alert('Failed to record credit: ' + e.message); }
     }
 
-    // ΓöÇΓöÇ Customer Detail ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // -- Customer Detail -------------------------------------------
     async function viewCustomerDetail(id) {
       try {
         const customer = await apiCall(`api/customers.php?id=${id}`);
@@ -9705,7 +9705,7 @@
       } catch (e) { alert('Failed to load customer: ' + e.message); }
     }
 
-    // ΓöÇΓöÇ Record Payment ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // -- Record Payment --------------------------------------------
     function openPaymentModal(creditSaleId, invoiceNumber, balance) {
       document.getElementById('pay-credit-sale-id').value = creditSaleId;
       document.getElementById('pay-invoice-number').textContent = invoiceNumber;
@@ -9744,7 +9744,7 @@
   </script>
   <!-- End of JavaScript -->
 
-  <!-- ΓöÇΓöÇ Shared Alert/Confirm Modal (replaces all native alert/confirm calls) ΓöÇΓöÇ -->
+  <!-- -- Shared Alert/Confirm Modal (replaces all native alert/confirm calls) -- -->
   <div class="modal fade" id="appDialogModal" tabindex="-1"
        aria-labelledby="appDialogModalTitle" aria-modal="true" role="dialog">
     <div class="modal-dialog modal-dialog-centered">
