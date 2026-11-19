@@ -990,13 +990,55 @@
                       <small class="text-muted">Flag as Low Stock when quantity falls to this level</small>
                     </div>
                     <div class="col-md-4">
-                      <div class="form-check mt-4">
-                        <input class="form-check-input" type="checkbox" id="product-has-expiry" name="has_expiry" value="1" style="cursor: pointer !important; pointer-events: auto !important;">
-                        <label class="form-check-label" for="product-has-expiry" style="cursor: pointer; user-select: none;" onclick="document.getElementById('product-has-expiry').checked = !document.getElementById('product-has-expiry').checked;"></label>
-                          <strong>Product has expiry date</strong>
+                      <label for="product-initial-qty" class="form-label">Initial Quantity</label>
+                      <input id="product-initial-qty" type="number" min="0" class="form-control" name="initial_quantity" placeholder="0" value="0" autocomplete="off">
+                      <small class="text-muted">How many units you have right now</small>
+                    </div>
+
+                    <!-- Has Expiry checkbox -->
+                    <div class="col-12">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="product-has-expiry" name="has_expiry" value="1"
+                          style="cursor:pointer !important; pointer-events:auto !important;"
+                          onchange="toggleProductExpiryFields(this.checked)">
+                        <label class="form-check-label fw-semibold" for="product-has-expiry" style="cursor:pointer;">
+                          <i class="bi bi-clock-history text-warning"></i> Product has expiry date
                         </label>
                       </div>
+                      <small class="text-muted">Check this if the product expires (food, medicine, etc.)</small>
                     </div>
+
+                    <!-- Expiry fields — shown only when checkbox is ticked -->
+                    <div id="product-expiry-fields" class="col-12" style="display:none;">
+                      <div class="card border-warning">
+                        <div class="card-header bg-warning bg-opacity-10 py-2">
+                          <h6 class="mb-0"><i class="bi bi-calendar-x text-warning"></i> First Batch Details</h6>
+                          <small class="text-muted">This becomes the opening stock batch for expiry tracking</small>
+                        </div>
+                        <div class="card-body">
+                          <div class="row g-3">
+                            <div class="col-md-4">
+                              <label for="product-batch-number" class="form-label">Batch Number <span class="text-danger">*</span></label>
+                              <div class="input-group">
+                                <input id="product-batch-number" type="text" class="form-control" placeholder="e.g. BATCH-001" autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary" onclick="generateProductBatchNumber()" title="Auto-generate">
+                                  <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                              </div>
+                            </div>
+                            <div class="col-md-4">
+                              <label for="product-manufacturing-date" class="form-label">Manufacturing Date</label>
+                              <input id="product-manufacturing-date" type="date" class="form-control" autocomplete="off">
+                            </div>
+                            <div class="col-md-4">
+                              <label for="product-expiry-date" class="form-label">Expiry Date <span class="text-danger">*</span></label>
+                              <input id="product-expiry-date" type="date" class="form-control" autocomplete="off">
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <div class="col-12">
                       <button type="submit" class="btn btn-success">
                         <i class="bi bi-plus-circle"></i> Add Product
@@ -3716,8 +3758,7 @@
     // Auto-generate SKU when product name changes
     function autoGenerateSKU() {
       const nameInput = document.querySelector('input[name="name"]');
-      const skuInput = document.querySelector('input[name="sku"]');
-      
+      const skuInput  = document.querySelector('input[name="sku"]');
       if (nameInput.value.trim()) {
         skuInput.value = generateSKUFromName(nameInput.value);
       }
@@ -3726,15 +3767,38 @@
     // Manual SKU generation
     function generateSKU() {
       const nameInput = document.querySelector('input[name="name"]');
-      const skuInput = document.querySelector('input[name="sku"]');
-      
+      const skuInput  = document.querySelector('input[name="sku"]');
       if (nameInput.value.trim()) {
         skuInput.value = generateSKUFromName(nameInput.value);
       } else {
-        // Generate generic SKU if no product name
         const timestamp = Date.now().toString().slice(-6);
         skuInput.value = `PRD-${timestamp}`;
       }
+    }
+
+    // Show/hide expiry batch fields when checkbox toggled
+    function toggleProductExpiryFields(checked) {
+      const fields = document.getElementById('product-expiry-fields');
+      if (!fields) return;
+      fields.style.display = checked ? '' : 'none';
+      if (checked) {
+        // Auto-generate a batch number and set today as manufacturing date
+        generateProductBatchNumber();
+        const mfg = document.getElementById('product-manufacturing-date');
+        if (mfg && !mfg.value) {
+          mfg.value = new Date().toISOString().split('T')[0];
+        }
+        document.getElementById('product-batch-number').focus();
+      }
+    }
+
+    // Generate a batch number for the product form
+    function generateProductBatchNumber() {
+      const bn = document.getElementById('product-batch-number');
+      if (!bn) return;
+      const pad = n => String(n).padStart(2, '0');
+      const d = new Date();
+      bn.value = `BCH-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${Date.now().toString().slice(-4)}`;
     }
 
     function announceStatus(message) {
@@ -8333,38 +8397,96 @@
         e.preventDefault();
         const formData = new FormData(this);
         const productData = Object.fromEntries(formData);
-        
+
         // Ensure SKU is generated if somehow empty
         if (!productData.sku) {
           productData.sku = generateSKUFromName(productData.name);
         }
-        
+
         // Convert has_expiry checkbox to integer (1 or 0)
-        // Check the actual checkbox element since unchecked checkboxes don't appear in FormData
         const hasExpiryCheckbox = document.getElementById('product-has-expiry');
-        productData.has_expiry = hasExpiryCheckbox && hasExpiryCheckbox.checked ? 1 : 0;
+        const hasExpiry = hasExpiryCheckbox && hasExpiryCheckbox.checked;
+        productData.has_expiry = hasExpiry ? 1 : 0;
         productData.reorder_point = parseInt(productData.reorder_point) || 10;
-        
+
+        const initialQty = Math.max(0, parseInt(productData.initial_quantity) || 0);
+
+        // If expiry product, validate batch fields before saving
+        if (hasExpiry) {
+          const batchNumber = document.getElementById('product-batch-number').value.trim();
+          const expiryDate  = document.getElementById('product-expiry-date').value;
+          if (initialQty > 0 && (!batchNumber || !expiryDate)) {
+            await showAlert('Missing Batch Details',
+              'You set an initial quantity for an expiry-tracked product. Please fill in the Batch Number and Expiry Date.',
+              'warning');
+            document.getElementById('product-batch-number').focus();
+            return;
+          }
+          if (expiryDate && new Date(expiryDate) < new Date()) {
+            await showAlert('Invalid Expiry Date', 'Expiry date cannot be in the past.', 'warning');
+            document.getElementById('product-expiry-date').focus();
+            return;
+          }
+        }
+
         try {
-          await apiCall('api/products.php', {
+          // Step 1: create the product
+          const result = await apiCall('api/products.php', {
             method: 'POST',
             body: JSON.stringify(productData)
           });
+          const productId = result.id;
+
+          // Step 2: set initial stock (if any)
+          if (initialQty > 0) {
+            if (hasExpiry) {
+              // For expiry products — create first batch (also updates stock quantity)
+              const batchNumber = document.getElementById('product-batch-number').value.trim() || ('BATCH-' + Date.now().toString().slice(-6));
+              const expiryDate  = document.getElementById('product-expiry-date').value;
+              const mfgDate     = document.getElementById('product-manufacturing-date').value;
+              await apiCall('api/batches.php', {
+                method: 'POST',
+                body: JSON.stringify({
+                  product_id: productId,
+                  batch_number: batchNumber,
+                  manufacturing_date: mfgDate || new Date().toISOString().split('T')[0],
+                  expiry_date: expiryDate,
+                  quantity: initialQty
+                })
+              });
+            } else {
+              // For non-expiry products — set stock quantity directly
+              await apiCall('api/stock.php?product_id=' + productId, {
+                method: 'PUT',
+                body: JSON.stringify({ quantity_to_add: initialQty, notes: 'Initial stock on product creation' })
+              });
+            }
+          }
+
+          // Reset form
           this.reset();
-          // Clear the SKU field for next product
           document.querySelector('input[name="sku"]').value = '';
+          document.getElementById('product-batch-number').value = '';
+          document.getElementById('product-expiry-date').value = '';
+          document.getElementById('product-manufacturing-date').value = '';
+          document.getElementById('product-expiry-fields').style.display = 'none';
+
           loadProducts();
-          AppLogger.action('PRODUCT', `Product added: "${productData.name}" | SKU: ${productData.sku} | Price: GH₵${productData.unit_price}`);
-          alert('Product added successfully!');
+          AppLogger.action('PRODUCT', `Product added: "${productData.name}" | SKU: ${productData.sku} | Price: GH₵${productData.unit_price} | Qty: ${initialQty}`);
+          await showAlert('Product Added',
+            `"${productData.name}" has been added successfully.` +
+            (initialQty > 0 ? ` Initial stock of ${initialQty} unit${initialQty !== 1 ? 's' : ''} recorded.` : ' Remember to add stock when you receive it.'),
+            'success');
+
         } catch (error) {
-          // Check if it's a duplicate name error
           if (error.message.includes('duplicate_name') || error.message.includes('already exists')) {
-            alert('⚡∩╕Å DUPLICATE PRODUCT NAME\n\nA product with the name "' + productData.name + '" already exists in the system.\n\nPlease use a different product name or check the existing product in the Products list.');
-            // Focus back on the product name field
+            await showAlert('Duplicate Product Name',
+              `A product named "${productData.name}" already exists. Please use a different name.`,
+              'warning');
             document.getElementById('product-name').focus();
             document.getElementById('product-name').select();
           } else {
-            alert('Failed to add product: ' + error.message);
+            await showAlert('Error', 'Failed to add product: ' + error.message, 'danger');
           }
         }
       });
